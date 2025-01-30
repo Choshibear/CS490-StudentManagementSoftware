@@ -1,1 +1,0 @@
-﻿# CS490-StudentManagementSoftware
