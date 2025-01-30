@@ -1,0 +1,21 @@
+Sponsor Meeting: 10am January 30th, 2025
+Duration: 20 Min
+Members Present: Leonardo Cruz, Farah Jaber, Priscilla Tran
+
+Our product for the school management system will be a tool used parents (Primary Users) to see their child’s courses, grades, and records.  Teachers or administrators (Secondary Users) will submit assignments and reports to the system where then the parents will be able to see them.
+
+We will be using the React framework for our project. Begin research on React and how to utilize it into our product. Final product will be hosted on a website, domain will be provided by the sponsor. 
+
+Before our first presentation, research and plan for a design/prototype for our product using the three written requirements below.
+•	Student record
+o	    Storage and Management: Securely store personal details, enrollment history, and academic progress. This ensures that all student information is easily accessible and up-to-date.
+o	    Customization: Customize fields to capture specific data relevant to your school.
+•	Gradebook
+o	    Grade Management: Teachers can record grades for assignments, tests, and projects.
+o	    Sharing: Grades can be shared with students and parents through a secure portal, providing transparency and encouraging student accountability.
+•	Course management
+o	    Content Creation: Teachers can create and manage course materials, including lessons, assignments, and assessments.
+o	    Organization: Organize content in a structured manner, making it easy for students to follow and access.
+
+Additional Notes
+	Course management can include a calendar-like feature to show each upcoming assignment deadlines for the day/week/month.
