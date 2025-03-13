@@ -1,0 +1,191 @@
+Using Node.js+Express.js
+https://www.geeksforgeeks.org/express-js/
+https://www.geeksforgeeks.org/steps-to-create-an-express-js-application/
+https://dev.to/kjdowns/building-a-basic-api-using-express-node-and-mongodb-160f
+https://www.npmjs.com/package/yarn
+//Install material UI: 
+https://mui.com/material-ui/getting-started/installation/
+React+React Router
+https://www.w3schools.com/react/react_router.asp
+
+
+Creating server
+1.Go to server directory
+2. Enter into terminal:
+npm init -y
+npm install express cors dotenv mongoose
+npm install nodemon --save-dev
+4. Create file called index.js and insert the lines:
+        const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
+
+
+const app = express();  
+
+
+// Set the port for the server to listen on
+const PORT = process.env.PORT || 5000;
+
+
+app.use(cors()); // Enable cross origin resource sharing
+
+
+// Enable JSON body parsing
+app.use(express.json());
+
+
+/**
+ * Define a route for the root URL
+ * @param {Request} req - The request object
+ * @param {Response} res - The response object
+ */
+app.get("/", (req, res) => {
+    res.send("Server is running!");
+});
+
+
+/**
+ * Start the server and listen for connections
+ */
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+5. Enter these lines into the scripts section of package.json
+"start": "node index.js",
+"dev": "nodemon index.js"
+6. Start server by entering into terminal
+        npm run dev
+
+
+Creating client
+1.Create client directory with react using line into terminal:
+npx create-react-app client
+2.Navigate to the client directory then enter
+        npm install axios        //api connections
+        npm install @mui/material @emotion/react @emotion/styled         //Material UI Library
+        npm install @mui/icons-material// MUI icons
+npm install react-router-dom //page traversal+routing
+3. Create two directories in src; pages, and components
+4. In the pages directory insert the following:
+        import React from "react";
+import { Typography, Paper } from "@mui/material";
+
+
+function Home() {
+    return (
+        <Paper elevation={3} style={{ padding: "20px", textAlign: "center" }}>
+            <Typography variant="h4">Welcome to the Menu</Typography>
+            <Typography variant="body1" style={{ marginTop: "10px" }}>
+                Select a page from the navigation bar.
+            </Typography>
+        </Paper>
+    );
+}
+
+
+export default Home;
+5. Create more pages if needed(gradebook,coursework,student records, login)
+6. In components, create new file Layout.js and insert the following:
+        import React, { useState } from "react";
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, AppBar, Typography, CssBaseline, Box } from "@mui/material";
+import { Link } from "react-router-dom";
+import HomeIcon from "@mui/icons-material/Home";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import GradeIcon from "@mui/icons-material/Grade";
+import PersonIcon from "@mui/icons-material/Person";
+import LoginIcon from "@mui/icons-material/Login";
+
+
+const drawerWidth = 240;
+
+
+const menuItems = [
+    { text: "Home", icon: <HomeIcon />, path: "/" },
+    { text: "Coursework", icon: <MenuBookIcon />, path: "/coursework" },
+    { text: "Gradebook", icon: <GradeIcon />, path: "/gradebook" },
+    { text: "Student Record", icon: <PersonIcon />, path: "/studentrecord" },
+    { text: "Login", icon: <LoginIcon />, path: "/login" }
+];
+
+
+function Layout({ children }) {
+    return (
+        <Box sx={{ display: "flex" }}>
+            <CssBaseline />
+            {/* Top Bar */}
+            <AppBar position="fixed" sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}>
+                <Toolbar>
+                    <Typography variant="h6" noWrap component="div">
+                        Student Portal
+                    </Typography>
+                </Toolbar>
+            </AppBar>
+
+
+            {/* Sidebar */}
+            <Drawer
+                variant="permanent"
+                sx={{
+                    width: drawerWidth,
+                    flexShrink: 0,
+                    [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
+                }}
+            >
+                <Toolbar />
+                <List>
+                    {menuItems.map(({ text, icon, path }) => (
+                        <ListItem key={text} disablePadding>
+                            <ListItemButton component={Link} to={path}>
+                                <ListItemIcon>{icon}</ListItemIcon>
+                                <ListItemText primary={text} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                </List>
+            </Drawer>
+
+
+            {/* Page Content */}
+            <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
+                {children}
+            </Box>
+        </Box>
+    );
+}
+
+
+export default Layout;
+7. In App.js, use this code:
+        import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/home";
+import Coursework from "./pages/coursework";
+import Gradebook from "./pages/gradebook";
+import StudentRecord from "./pages/studentrecord";
+import Login from "./pages/login";
+
+
+function App() {
+    return (
+        <Router>
+            <Layout>
+                <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/coursework" element={<Coursework />} />
+                    <Route path="/gradebook" element={<Gradebook />} />
+                    <Route path="/studentrecord" element={<StudentRecord />} />
+                    <Route path="/login" element={<Login />} />
+                </Routes>
+            </Layout>
+        </Router>
+    );
+}
+
+
+export default App;
+
+
+8.run the client using:
+        npm start
