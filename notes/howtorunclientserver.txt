@@ -2,9 +2,13 @@ How to run client and server.
 
 Enter terminal and enter directory for client
 run the line: 
-npm start
+    npm start
 
-client should open automatically in your browser
+client should open automatically in your browser, 
+**if you encounter error:['react-scripts' is not recognized as an internal or external command, operable program or batch file.]
+run following lines:
+    npm install
+    npm start
 
 
 Open/split seperate terminal and enter directory for server
