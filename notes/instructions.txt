@@ -1,0 +1,20 @@
+3/13/2025
+
+1.Navigate to the pages Directory
+client/src/pages/
+
+Each file represents a page corresponding to a main system function, defined by its name.
+
+2.Implement UI Components for Each Page
+Use the Material UI Library to build React components.
+Ensure responsiveness (works on different screen sizes).
+Each page should display some initial UI elements relevant to its function.
+
+
+3.Focus on Layout & UI First
+Don't worry about backend connections yet.
+Get basic visuals and user interactions working first (buttons, forms, tables, etc.).
+If needed, use dummy data to simulate functionality.
+
+4.Next Steps
+Once all pages have a responsive UI, we will connect them to the server to handle data and logic.
