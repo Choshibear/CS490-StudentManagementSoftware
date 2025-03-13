@@ -1,19 +1,21 @@
 How to run client and server.
 
-Enter terminal and enter directory for client
-run the line: 
-    npm start
+after cloning the repo
 
-client should open automatically in your browser, 
-**if you encounter error:['react-scripts' is not recognized as an internal or external command, operable program or batch file.]
-run following lines:
+Client:
+Enter terminal and enter directory for client
+run the lines: 
     npm install
     npm start
 
+This will install the dependancies into your local machine,
+will automatically open on your preferred browser under localhost:3000.
 
+
+Server:
 Open/split seperate terminal and enter directory for server
-run the line: 
-npm run dev
+    run the line: 
+    npm run dev
 
 the console should return success message when server is running
 you can also see the server by going to localhost:5000
