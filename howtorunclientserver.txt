@@ -1,0 +1,15 @@
+How to run client and server.
+
+Enter terminal and enter directory for client
+run the line: 
+npm start
+
+client should open automatically in your browser
+
+
+Open/split seperate terminal and enter directory for server
+run the line: 
+npm run dev
+
+the console should return success message when server is running
+you can also see the server by going to localhost:5000
