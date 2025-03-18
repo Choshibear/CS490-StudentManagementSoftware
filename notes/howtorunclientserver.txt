@@ -1,6 +1,12 @@
 How to run client and server.
 
-after cloning the repo
+Node.js must be installed onto your machine to run the client/server.
+Go into terminal and enter "node -v" to verify if your machine is installed with the latest version of node.js
+
+if you have Node.js installed, skip this step, 
+otherwise install node.js here: https://nodejs.org/en/download
+
+Afterwards clone the repo from github: https://github.com/Choshibear/CS490-StudentManagementSoftware
 
 Client:
 Enter terminal and enter directory for client
