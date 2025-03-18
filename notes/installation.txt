@@ -1,3 +1,7 @@
+These are the notes for creating the client and server along with its dependencies and root files for functionality.
+Refer to howtorunclientserver.txt if you need to run and test the code for client/server.
+
+
 Using Node.js+Express.js
 https://www.geeksforgeeks.org/express-js/
 https://www.geeksforgeeks.org/steps-to-create-an-express-js-application/
