@@ -3,20 +3,7 @@ import { Typography, Paper, TextField, Button } from "@mui/material";
 
 function Login() {
     return (
-        <div style={{ 
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "#f8fbff", /* Very light blue */
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            margin: 30,
-            padding: 0,
-            overflow: "hidden"
-        }}>
+        <div style={{ display: "flex", marginTop: "100px", justifyContent: "center", alignItems: "center"}}>
             <Paper elevation={3} style={{ 
                 padding: "30px", width: "350px", textAlign: "center", borderRadius: "10px",
                 backgroundColor: "white"
