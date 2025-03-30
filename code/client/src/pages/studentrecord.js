@@ -288,4 +288,4 @@ function StudentRecord() {
     </Box>
   );
 }
-export default CollapsibleTable;
+export default StudentRecord;
