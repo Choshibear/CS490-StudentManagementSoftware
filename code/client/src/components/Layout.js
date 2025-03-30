@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Paper, List, ListItem, ListItemButton, ListItemIcon,ListItemText, Avatar, Badge } from "@mui/material";
+import { AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Paper, List, ListItem, ListItemButton, ListItemIcon,ListItemText, Avatar, Badge, Drawer } from "@mui/material";
 import { Link } from "react-router-dom";
 import HomeIcon from "@mui/icons-material/Home";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -9,6 +9,9 @@ import LoginIcon from "@mui/icons-material/Login";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MailIcon from "@mui/icons-material/Mail";
+import Grid from '@mui/material/Grid2';
+
+const drawerWidth = 150;
 
 const menuItems = [
     { text: "Home", icon: <HomeIcon />, path: "/" },
@@ -29,7 +32,7 @@ function Layout({ children }) {
             <CssBaseline />
 
             {/* Top Bar */}
-            <AppBar position="fixed" sx={{ width: "100%", bgcolor: "primary.main" }}>
+            <AppBar position="fixed" sx={{ width: "100%", bgcolor: "primary.main", zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar sx ={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     
                     {/* Logo */}
@@ -56,23 +59,25 @@ function Layout({ children }) {
                     </Box>
                 </Toolbar>
             </AppBar>
+
+
+
+
             
             {/* Left Navigation Rail */}
-            <Paper
-                sx={{
-                    position: "fixed",
-                    left: 10,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    borderRadius: "32px",
-                    boxShadow: 5
-                }}
-                elevation={3}
-            >
-                <List>
+
+            <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+      >
+        <Toolbar />
+        <Box sx={{ overflow: 'auto' }}>
+        <Toolbar sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}/>
+        <List>
                     {menuItems.map(({ text, icon, path }) => (
                         <ListItem key={text} disablePadding sx ={{ 
                                                                 display: "block", 
@@ -91,14 +96,18 @@ function Layout({ children }) {
                         </ListItem>
                     ))}
                 </List>
-            </Paper>
+                </Box>
+                </Drawer>
             
             {/* Page Content */}
-            <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8, ml: 5 }}>
+            <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+            <Toolbar />
                 {children}
             </Box>
         </Box>
+            
     );
+    
 }
 
 export default Layout;

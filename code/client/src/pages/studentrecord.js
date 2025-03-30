@@ -289,4 +289,18 @@ function StudentRecord() {
   );
 }
 
-export default StudentRecord;
+      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this student?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error">Delete</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default CollapsibleTable;
