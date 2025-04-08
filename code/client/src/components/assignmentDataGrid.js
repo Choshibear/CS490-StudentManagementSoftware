@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState }  from "react";
+import { MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
@@ -6,6 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
+import axios from "axios";
 import {
   GridRowModes,
   DataGrid,
@@ -15,86 +17,105 @@ import {
 } from '@mui/x-data-grid';
 
 
-const types = ['Homework', 'Project', 'Quiz', 'Presentation', 'Test'];
 
 
-const initialRows = [
-  {
-    id: 1,
-    type: 'Homework',
-    title: ' HW-1',
-    description: 'This will be a description of the assignment',
-    dueDate: '1/27/2025',
-    possiblePoints: 20,
-    viewScores: 'NaN',
-  },
-  {
-    id: 2,
-    type: 'Project',
-    title: 'Capstone-2',
-    description: 'This will be a description of the assignment',
-    dueDate: '7/19/2025',
-    possiblePoints: 100,
-    viewScores: 'NaN',
-  },
-  {
-    id: 3,
-    type: 'Quiz',
-    title: 'Quiz#3',
-    description: 'This will be a description of the assignment',
-    dueDate: '4/12/2025',
-    possiblePoints: 10,
-    viewScores: 'NaN',
-  },
-  {
-    id: 4,
-    type: 'Presentation',
-    title: 'PowerPoint-4',
-    description: 'This will be a description of the assignment',
-    dueDate: '3/21/2025',
-    possiblePoints: 100,
-    viewScores: 'NaN',
-  },
-  {
-    id: 5,
-    type: 'Test',
-    title: 'Chapter-1',
-    description: 'This will be a description of the assignment',
-    dueDate: '5/8/2025',
-    possiblePoints: 50,
-    viewScores: 'NaN',
-  },
-];
+
+
 
    
 
-function EditToolbar(props) {
-  const { setRows, setRowModesModel } = props;
+function EditToolbar({ setFilterCourse, data, setData, setRowModesModel }) {
+  const [selectedCourse, setSelectedCourse] = useState("");
 
-  const handleClick = () => {
-    const id = 6;
-    setRows((oldRows) => [
-      ...oldRows,
-      { id, type: '', title: '', description: '', possiblePoints: '', isNew: true },
-    ]);
-    setRowModesModel((oldModel) => ({
-      ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'type' },
+  // Get unique course names for dropdown
+  const courseNames = [...new Set(data.map((item) => item.courseName))];
+
+  const handleChange = (event) => {
+    const value = event.target.value;
+    setSelectedCourse(value);
+    setFilterCourse(value); // Pass selected course to parent
+  };
+
+  const handleAddClick = () => {
+    const newId = data.length + 1; // Simple ID generation
+    const newRow = {
+      assignmentId: newId,
+      typeName: "",
+      assignmentName: "",
+      description: "",
+      dueDate: "",
+      possiblePoints: "",
+      weight: "",
+      courseName: "",
+      isNew: true,
+    };
+
+    setData((prevData) => [...prevData, newRow]);
+    setRowModesModel((prevModes) => ({
+      ...prevModes,
+      [newId]: { mode: "edit", fieldToFocus: "typeName" },
     }));
   };
 
   return (
-    <GridToolbarContainer>
-      <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+    <GridToolbarContainer sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      padding: "12px 16px", // Increase padding
+      height: "70px", // Increase height
+      fontSize: "1.1rem", // Increase font size
+      backgroundColor: "#f5f5f5", // Optional: Light gray background
+    }}>
+      {/* Course Filter Dropdown */}
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel shrink sx={{
+      transform: "translate(14px, -9px) scale(0.75)", // Adjust position & size
+      fontSize: "0.75rem", // Smaller text size
+    }}>Filter by Course</InputLabel>
+        <Select value={selectedCourse} onChange={handleChange} displayEmpty>
+          <MenuItem value="">All Courses</MenuItem>
+          {courseNames.map((course) => (
+            <MenuItem key={course} value={course}>
+              {course}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Add Assignment Button */}
+      <Button
+        color="primary"
+        startIcon={<AddIcon />}
+        onClick={handleAddClick}
+        sx={{ marginLeft: "auto" }}
+      >
         Add Assignment
       </Button>
     </GridToolbarContainer>
   );
 }
 
- export default function AssignmentDataGrid() {
-  const [rows, setRows] = React.useState(initialRows);
-  const [rowModesModel, setRowModesModel] = React.useState({});
+export default function AssignmentDataGrid() {
+  const [data, setData] = useState([]);
+  const [filterCourse, setFilterCourse] = useState("");
+  const [rowModesModel, setRowModesModel] = useState({});
+
+
+  useEffect(() => {
+    axios
+    .get('http://localhost:5000/api/Assignments/Courses')
+    .then((response) => {
+      setData(response.data); // Set the data from the API response to state
+    })
+    .catch((error) => {
+      console.error('There was an error fetching the assignments:', error); 
+    });
+  }, []);
+
+
+  // Filter data based on selected course
+  const filteredData = filterCourse ? data.filter((row) => row.courseName === filterCourse) : data;
 
   const handleRowEditStop = (params, event) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
@@ -102,33 +123,36 @@ function EditToolbar(props) {
     }
   };
 
-  const handleEditClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+  const handleEditClick = (assignmentId) => () => {
+    setRowModesModel({ ...rowModesModel, [assignmentId]: { mode: GridRowModes.Edit } });
   };
 
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+  const handleSaveClick = (assignmentId) => () => {
+    setRowModesModel({ ...rowModesModel, [assignmentId]: { mode: GridRowModes.View } });
   };
 
-  const handleDeleteClick = (id) => () => {
-    setRows(rows.filter((row) => row.id !== id));
+
+  const handleDeleteClick = (assignmentId) => () => {
+    setData(data.filter((data) => data.assignmentId !== assignmentId));
   };
 
-  const handleCancelClick = (id) => () => {
+  const handleCancelClick = (assignmentId) => () => {
     setRowModesModel({
       ...rowModesModel,
-      [id]: { mode: GridRowModes.View, ignoreModifications: true },
+      [assignmentId]: { mode: GridRowModes.View, ignoreModifications: true },
     });
 
-    const editedRow = rows.find((row) => row.id === id);
+  
+    const editedRow = data.find((data) => data.assignmentId === assignmentId);
     if (editedRow.isNew) {
-      setRows(rows.filter((row) => row.id !== id));
+      setData(data.filter((data) => data.assignmentId !== assignmentId));
     }
   };
 
+
   const processRowUpdate = (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-    setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
+    setData(data.map((data) => (data.assignmentId === newRow.assignmentId ? updatedRow : data)));
     return updatedRow;
   };
 
@@ -137,16 +161,25 @@ function EditToolbar(props) {
   };
 
   const columns = [
+    {
+      field: 'assignmentId',
+      headerName: 'ID',
+      //type: 'string',
+      width: 20,
+      align: 'left',
+      headerAlign: 'left',
+      //editable: true,
+    },
     { 
-      field: 'type', 
+      field: 'typeName', 
       headerName: 'Type', 
       width: 120, 
       editable: true,
-      type: 'singleSelect',
-      valueOptions: ['Homework', 'Project', 'Quiz', 'Presentation'],
+      //type: 'singleSelect',
+      //valueOptions: [data.assignmentTypeId],
     },
     {
-      field: 'title',
+      field: 'assignmentName',
       headerName: 'Title',
       type: 'string',
       width: 200,
@@ -157,7 +190,7 @@ function EditToolbar(props) {
     {
       field: 'description',
       headerName: 'Description',
-      width: 450,
+      width: 350,
       align: 'left',
       headerAlign: 'left',
       editable: true,
@@ -166,7 +199,7 @@ function EditToolbar(props) {
       field: 'dueDate',
       headerName: 'Due date',
       type: 'string',
-      width: 160,
+      width: 120,
       editable: true,
     },
     {
@@ -179,13 +212,19 @@ function EditToolbar(props) {
       editable: true,
     },
     {
-      field: 'viewScores',
-      headerName: 'View Scores',
+      field: 'weight',
+      headerName: 'Weight',
       type: 'number',
-      width: 120,
+      width: 75,
       align: 'left',
       headerAlign: 'left',
       editable: true,
+    },
+    {
+      field: 'courseName',
+      headerName: 'Course',
+      width: 120,
+      hide: true,
     },
     {
       field: 'actions',
@@ -193,8 +232,8 @@ function EditToolbar(props) {
       headerName: 'Actions',
       width: 100,
       cellClassName: 'actions',
-      getActions: ({ id }) => {
-        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
+      getActions: ({ assignmentId }) => {
+        const isInEditMode = rowModesModel[assignmentId]?.mode === GridRowModes.Edit;
 
         if (isInEditMode) {
           return [
@@ -204,13 +243,13 @@ function EditToolbar(props) {
               sx={{
                 color: 'primary.main',
               }}
-              onClick={handleSaveClick(id)}
+              onClick={handleSaveClick(assignmentId)}
             />,
             <GridActionsCellItem
               icon={<CancelIcon />}
               label="Cancel"
               className="textPrimary"
-              onClick={handleCancelClick(id)}
+              onClick={handleCancelClick(assignmentId)}
               color="inherit"
             />,
           ];
@@ -221,13 +260,13 @@ function EditToolbar(props) {
             icon={<EditIcon />}
             label="Edit"
             className="textPrimary"
-            onClick={handleEditClick(id)}
+            onClick={handleEditClick(assignmentId)}
             color="inherit"
           />,
           <GridActionsCellItem
             icon={<DeleteIcon />}
             label="Delete"
-            onClick={handleDeleteClick(id)}
+            onClick={handleDeleteClick(assignmentId)}
             color="inherit"
           />,
         ];
@@ -250,8 +289,9 @@ function EditToolbar(props) {
     >
       <div style={{ display: 'flex', flexDirection: 'column' }}>
       <DataGrid
-        rows={rows}
+        rows={filteredData}
         columns={columns}
+        getRowId={(row) => `${row.assignmentId}-${row.courseId}`}
         editMode="row"
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
@@ -259,7 +299,7 @@ function EditToolbar(props) {
         processRowUpdate={processRowUpdate}
         slots={{ toolbar: EditToolbar }}
         slotProps={{
-          toolbar: { setRows, setRowModesModel },
+          toolbar: { setFilterCourse, data, setData, setRowModesModel },
         }}
       />
       </div>
@@ -267,6 +307,3 @@ function EditToolbar(props) {
   );
 }
 
-
-
-//export default Coursework;
