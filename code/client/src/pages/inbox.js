@@ -34,6 +34,13 @@ const messages = [
     subject: "Staff Meeting",
     date: "April 6, 2025",
     body: "Reminder: Staff meeting scheduled for tomorrow at 3 PM in the library."
+  },
+  {
+    id: 4,
+    sender: "You",
+    subject: "Re: Question about Assignment",
+    date: "April 7, 2025",
+    body: "Sure! For question 3, remember to divide both sides by the coefficient first."
   }
 ];
 
@@ -41,10 +48,14 @@ function Inbox() {
   const [selectedMessage, setSelectedMessage] = useState(messages[0]);
   const [replyText, setReplyText] = useState("");
   const [openCompose, setOpenCompose] = useState(false);
+  const [activeTab, setActiveTab] = useState("Inbox");
+
+  const inboxMessages = messages.filter((msg) => msg.sender !== "You");
+  const sentMessages = messages.filter((msg) => msg.sender === "You");
 
   return (
     <Box display="flex" height="100%" sx={{ minHeight: '90vh' }}>
-      {/* the sidebar */}
+      {/* Sidebar */}
       <Box width="280px" bgcolor="#f9f9f9" borderRight="1px solid #ccc" p={2}>
         <Button
           variant="contained"
@@ -54,8 +65,35 @@ function Inbox() {
         >
           Compose New Message
         </Button>
+
+        {/* Tabs */}
+        <Box display="flex" mb={2}>
+          <Button
+            fullWidth
+            onClick={() => setActiveTab("Inbox")}
+            variant={activeTab === "Inbox" ? "contained" : "outlined"}
+            sx={{
+              backgroundColor: activeTab === "Inbox" ? "#1976d2" : "transparent",
+              color: activeTab === "Inbox" ? "#fff" : "#000"
+            }}
+          >
+            Inbox
+          </Button>
+          <Button
+            fullWidth
+            onClick={() => setActiveTab("Sent")}
+            variant={activeTab === "Sent" ? "contained" : "outlined"}
+            sx={{
+              backgroundColor: activeTab === "Sent" ? "#1976d2" : "transparent",
+              color: activeTab === "Sent" ? "#fff" : "#000"
+            }}
+          >
+            Sent
+          </Button>
+        </Box>
+
         <List>
-          {messages.map((msg) => (
+          {(activeTab === "Inbox" ? inboxMessages : sentMessages).map((msg) => (
             <ListItem
               button
               key={msg.id}
@@ -82,7 +120,7 @@ function Inbox() {
         </List>
       </Box>
 
-      {/* Message content */}
+      {/* Message Content */}
       <Box flexGrow={1} p={4}>
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           {selectedMessage.subject}
@@ -117,7 +155,7 @@ function Inbox() {
         </Button>
       </Box>
 
-      {/* Compose Message */}
+      {/* Compose Message Dialog */}
       <Dialog open={openCompose} onClose={() => setOpenCompose(false)} fullWidth maxWidth="sm">
         <DialogTitle>Compose New Message</DialogTitle>
         <DialogContent>
