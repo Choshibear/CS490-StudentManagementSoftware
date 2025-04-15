@@ -13,39 +13,44 @@ import {
   DialogActions
 } from "@mui/material";
 
-const messages = [
+const initialMessages = [
   {
     id: 1,
     sender: "Sarah Student",
     subject: "Question about Assignment",
     date: "April 7, 2025",
-    body: "I'm having trouble understanding the third question on the worksheet. Could you please provide additional information?"
+    body: "I'm having trouble understanding the third question on the worksheet. Could you please provide additional information?",
+    unread: true
   },
   {
     id: 2,
     sender: "John Parent",
     subject: "Absence Request",
     date: "April 5, 2025",
-    body: "My child will be absent due to a family emergency. Please let us know if any work needs to be made up."
+    body: "My child will be absent due to a family emergency. Please let us know if any work needs to be made up.",
+    unread: true
   },
   {
     id: 3,
     sender: "Principal Johnson",
     subject: "Staff Meeting",
     date: "April 6, 2025",
-    body: "Reminder: Staff meeting scheduled for tomorrow at 3 PM in the library."
+    body: "Reminder: Staff meeting scheduled for tomorrow at 3 PM in the library.",
+    unread: true
   },
   {
     id: 4,
     sender: "You",
     subject: "Re: Question about Assignment",
     date: "April 7, 2025",
-    body: "Sure! For question 3, remember to divide both sides by the coefficient first."
+    body: "Sure! For question 3, remember to divide both sides by the coefficient first.",
+    unread: false
   }
 ];
 
 function Inbox() {
-  const [selectedMessage, setSelectedMessage] = useState(messages[0]);
+  const [messages, setMessages] = useState(initialMessages);
+  const [selectedMessage, setSelectedMessage] = useState(initialMessages[0]);
   const [replyText, setReplyText] = useState("");
   const [openCompose, setOpenCompose] = useState(false);
   const [activeTab, setActiveTab] = useState("Inbox");
@@ -53,14 +58,29 @@ function Inbox() {
   const inboxMessages = messages.filter((msg) => msg.sender !== "You");
   const sentMessages = messages.filter((msg) => msg.sender === "You");
 
+  const handleSelectMessage = (msg) => {
+    setSelectedMessage(msg);
+    if (msg.unread) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msg.id ? { ...m, unread: false } : m
+        )
+      );
+    }
+  };
+
   return (
-    <Box display="flex" height="100%" sx={{ minHeight: '90vh' }}>
+    <Box display="flex" height="100%" sx={{ minHeight: "90vh" }}>
       {/* Sidebar */}
       <Box width="280px" bgcolor="#f9f9f9" borderRight="1px solid #ccc" p={2}>
         <Button
           variant="contained"
           fullWidth
-          sx={{ mb: 3, backgroundColor: "#1976d2", "&:hover": { backgroundColor: "#1565c0" } }}
+          sx={{
+            mb: 3,
+            backgroundColor: "#1976d2",
+            "&:hover": { backgroundColor: "#1565c0" }
+          }}
           onClick={() => setOpenCompose(true)}
         >
           Compose New Message
@@ -97,7 +117,7 @@ function Inbox() {
             <ListItem
               button
               key={msg.id}
-              onClick={() => setSelectedMessage(msg)}
+              onClick={() => handleSelectMessage(msg)}
               selected={selectedMessage.id === msg.id}
               sx={{
                 mb: 1,
@@ -106,7 +126,19 @@ function Inbox() {
               }}
             >
               <ListItemText
-                primary={<strong>{msg.sender}</strong>}
+                primary={
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <strong>{msg.sender}</strong>
+                    {msg.unread && (
+                      <Box
+                        width={8}
+                        height={8}
+                        borderRadius="50%"
+                        bgcolor="blue"
+                      />
+                    )}
+                  </Box>
+                }
                 secondary={
                   <>
                     <span>{msg.subject}</span>
@@ -149,7 +181,11 @@ function Inbox() {
         />
         <Button
           variant="contained"
-          sx={{ mt: 2, backgroundColor: "#1976d2", "&:hover": { backgroundColor: "#1565c0" } }}
+          sx={{
+            mt: 2,
+            backgroundColor: "#1976d2",
+            "&:hover": { backgroundColor: "#1565c0" }
+          }}
         >
           Send Reply
         </Button>
@@ -169,9 +205,7 @@ function Inbox() {
           </Button>
           <Button
             variant="contained"
-            onClick={() => {
-              setOpenCompose(false);
-            }}
+            onClick={() => setOpenCompose(false)}
             sx={{ backgroundColor: "#1976d2", "&:hover": { backgroundColor: "#1565c0" } }}
           >
             Send
