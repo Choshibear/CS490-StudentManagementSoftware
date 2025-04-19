@@ -7,11 +7,20 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Box,
+  Typography
 } from "@mui/material";
 import axios from "axios";
 
-const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
+const EditToolbar = ({ 
+  courses, 
+  students, 
+  selectedCourseId, 
+  selectedStudentId, 
+  setSelectedCourseId, 
+  setSelectedStudentId 
+}) => {
   return (
     <GridToolbarContainer sx={{
       display: "flex",
@@ -23,13 +32,13 @@ const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
       backgroundColor: "#f5f5f5",
     }}>
       <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel shrink sx={{
-              transform: "translate(14px, -9px) scale(0.75)", // Adjust position & size
-              fontSize: "0.75rem", // Smaller text size
-            }}>Filter by Course</InputLabel>
+        <InputLabel shrink>Course</InputLabel>
         <Select
           value={selectedCourseId ?? ''}
-          onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+          onChange={(e) => {
+            setSelectedCourseId(Number(e.target.value));
+            setSelectedStudentId(null); // Reset student when course changes
+          }}
           displayEmpty
         >
           <MenuItem value="">
@@ -42,6 +51,27 @@ const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
           ))}
         </Select>
       </FormControl>
+
+      {selectedCourseId && (
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel shrink>Student</InputLabel>
+          <Select
+            value={selectedStudentId ?? ''}
+            onChange={(e) => setSelectedStudentId(Number(e.target.value))}
+            displayEmpty
+            disabled={!selectedCourseId}
+          >
+            <MenuItem value="">
+              <em>Select a student</em>
+            </MenuItem>
+            {students.map((student) => (
+              <MenuItem key={student.studentId} value={student.studentId}>
+                {student.studentName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
     </GridToolbarContainer>
   );
 };
@@ -49,115 +79,126 @@ const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
 const Gradebook = () => {
   const [gradesData, setGradesData] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState(null); // Default courseId = 1
+  const [students, setStudents] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // Fetch courses
   useEffect(() => {
     const fetchCourses = async () => {
-      const res = await axios.get("http://localhost:5000/api/courses");
+      const res = await axios.get('http://localhost:5000/api/courses');
       setCourses(res.data);
-      if (res.data.length > 0 && !selectedCourseId) {
-        setSelectedCourseId(res.data[0].courseId); // default to first available
-      }
     };
     fetchCourses();
   }, []);
 
+  // Fetch students when course is selected
   useEffect(() => {
-    if (!selectedCourseId) return;
-    const fetchGradebook = async () => {
-      const res = await axios.get(`http://localhost:5000/api/gradebook/course/${selectedCourseId}`);
-      const grouped = groupData(res.data);
-      setGradesData(grouped);
+    const fetchStudents = async () => {
+      if (selectedCourseId) {
+        setLoading(true);
+        try {
+          const res = await axios.get(`http://localhost:5000/api/courses/${selectedCourseId}/students`);
+          setStudents(res.data);
+        } catch (error) {
+          console.error("Error fetching students:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
     };
-    fetchGradebook();
+    fetchStudents();
   }, [selectedCourseId]);
 
-  const groupData = (rows) => {
-    const studentMap = {};
-    const assignmentSet = new Set();
-
-    rows.forEach((row) => {
-      if (!studentMap[row.student_id]) {
-        studentMap[row.student_id] = {
-          id: row.student_id,
-          student: row.student_name,
-        };
+  // Fetch grade when both course and student are selected
+  useEffect(() => {
+    const fetchGrade = async () => {
+      if (selectedCourseId && selectedStudentId) {
+        setLoading(true);
+        try {
+          const res = await axios.get(
+            `http://localhost:5000/api/coursegrades?courseId=${selectedCourseId}&studentId=${selectedStudentId}`
+          );
+          // Transform the grade data for display
+          setGradesData([transformGradeData(res.data)]);
+        } catch (error) {
+          console.error("Error fetching grade:", error);
+          setGradesData([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setGradesData([]);
       }
-      studentMap[row.student_id][row.assignmentName] = row.assignmentPoints || '';
-      assignmentSet.add(row.assignmentName);
-    });
+    };
+    fetchGrade();
+  }, [selectedCourseId, selectedStudentId]);
 
-    return Object.values(studentMap);
+  // Transform the grade object into a format suitable for the DataGrid
+  const transformGradeData = (grade) => {
+    return {
+      id: grade.courseGradeId,
+      date: new Date(grade.date).toLocaleDateString(),
+      studentId: grade.studentId,
+      courseId: grade.courseId,
+      grade: grade.courseGrade,
+      feedback: grade.feedback,
+      average: grade.courseAvg
+    };
   };
 
   const getColumns = () => {
-    const assignmentNames = gradesData.length > 0
-      ? Object.keys(gradesData[0]).filter((k) => k !== 'id' && k !== 'student')
-      : [];
-
-    const assignmentColumns = assignmentNames.map((name) => ({
-      field: name,
-      headerName: name,
-      width: 150,
-      editable: true,
-    }));
-
     return [
-      { field: 'student', headerName: 'Student', width: 200 },
-      ...assignmentColumns
+      { field: 'id', headerName: 'Grade ID', width: 100 },
+      { field: 'date', headerName: 'Date', width: 150 },
+      { field: 'studentId', headerName: 'Student ID', width: 120 },
+      { field: 'courseId', headerName: 'Course ID', width: 120 },
+      { 
+        field: 'grade', 
+        headerName: 'Grade', 
+        width: 120, 
+        editable: true,
+        type: 'singleSelect',
+        valueOptions: ['A', 'B', 'C', 'D', 'F', 'I', 'W']
+      },
+      { field: 'feedback', headerName: 'Feedback', width: 300, editable: true },
+      { field: 'average', headerName: 'Average', width: 120 }
     ];
   };
 
   const handleRowUpdate = async (newRow, oldRow) => {
-    const studentId = newRow.id;
-  
-    // Find the changed assignment
-    const changedAssignment = Object.keys(newRow).find(
-      (key) => newRow[key] !== oldRow[key] && key !== 'id' && key !== 'student'
-    );
-  
-    if (!changedAssignment) return oldRow;
-  
-    const updatedPoints = newRow[changedAssignment];
-
-    console.log('Detected edit:');
-  console.log('Student ID:', studentId);
-  console.log('Assignment:', changedAssignment);
-  console.log('Updated Points:', updatedPoints);
-  
     try {
-      const response = await axios.put('http://localhost:5000/api/assignmentgrades/update', {
-        studentId,
-        courseId: selectedCourseId,
-        assignmentName: changedAssignment,
-        points: updatedPoints
-      });
+      // Prepare the updated data in the format your API expects
+      const updatedData = {
+        courseGradeId: newRow.id,
+        date: new Date(newRow.date).toISOString(),
+        studentId: newRow.studentId,
+        courseId: newRow.courseId,
+        courseGrade: newRow.grade,
+        feedback: newRow.feedback,
+        courseAvg: newRow.average
+      };
 
-      console.log('API response:', response.data); // Log the API response
+      // Send the update to your API
+      await axios.put(`http://localhost:5000/api/coursegrades/${newRow.id}`, updatedData);
 
-      // Update local state to reflect UI
-    setGradesData((prevRows) =>
-      prevRows.map((row) =>
-        row.id === newRow.id
-          ? { ...row, [changedAssignment]: updatedPoints }
-          : row
-      )
-    );
+      // Update local state
+      setGradesData([newRow]);
 
-    console.log('Local state updated.');
-  
-      return { ...newRow}; // confirms successful update to DataGrid
+      return newRow;
     } catch (error) {
       console.error("Error updating grade:", error);
-      return oldRow; // revert to old row if error occurs
+      return oldRow;
     }
   };
 
   return (
-    <div style={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 500, width: '100%' }}>
       <DataGrid
         rows={gradesData}
         columns={getColumns()}
+        loading={loading}
         processRowUpdate={handleRowUpdate}
         onProcessRowUpdateError={(err) => console.error(err)}
         experimentalFeatures={{ newEditingApi: true }}
@@ -167,13 +208,36 @@ const Gradebook = () => {
         slotProps={{
           toolbar: {
             courses,
+            students,
             selectedCourseId,
-            setSelectedCourseId
+            selectedStudentId,
+            setSelectedCourseId,
+            setSelectedStudentId
           }
         }}
         disableColumnMenu
+        sx={{
+          '& .MuiDataGrid-cell': {
+            padding: '8px 16px',
+          },
+        }}
       />
-    </div>
+      {gradesData.length === 0 && selectedCourseId && selectedStudentId && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: 100,
+          backgroundColor: '#f5f5f5',
+          border: '1px solid #e0e0e0',
+          borderTop: 0
+        }}>
+          <Typography variant="body1">
+            No grade record found for this student in the selected course.
+          </Typography>
+        </Box>
+      )}
+    </Box>
   );
 };
 

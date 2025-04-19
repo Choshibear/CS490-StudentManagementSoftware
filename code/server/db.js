@@ -1,3 +1,8 @@
+/*
+* db.js
+*this file is used to connect to the database and return a connection object
+*/
+
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
