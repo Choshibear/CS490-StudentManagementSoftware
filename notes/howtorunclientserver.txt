@@ -19,8 +19,17 @@ will automatically open on your preferred browser under localhost:3000.
 
 
 Server:
+Navigate to /code/server and create a file called ".env"
+in that file, copy and past the following:
+    DB_HOST=student-portal-db.cdsa0g4q2379.us-east-1.rds.amazonaws.com
+    DB_PORT=3306
+    DB_USER=admin
+    DB_PASSWORD=password
+    DB_NAME=esms
+
 Open/split seperate terminal and enter directory for server
-    run the line: 
+    run the line:
+    npm install
     npm run dev
 
 the console should return success message when server is running
