@@ -1,12 +1,10 @@
-to start server: 
-1. Navigate into server
-2. Enter into terminal: 'npm run dev'
+New database setup (4/19/2025):
+Navigate to /code/server and create a file called ".env"
+in that file, copy and past the following.
 
-database setup:
-Create your own .env file in the server folder with this content:
-DB_HOST=localhost
-DB_USER=your_mysql_user
-DB_PASSWORD=your_mysql_password
-DB_NAME=esms_db
-DB_PORT=3307
-PORT=5000
+DB_HOST=student-portal-db.cdsa0g4q2379.us-east-1.rds.amazonaws.com
+DB_PORT=3306
+DB_USER=admin
+DB_PASSWORD=password
+DB_NAME=esms
+
