@@ -1,4 +1,4 @@
-import React, { useEffect, useState }  from "react";
+import React, { useEffect, useState } from "react";
 import { MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -13,73 +13,51 @@ import {
   DataGrid,
   GridToolbarContainer,
   GridActionsCellItem,
-  GridRowEditStopReasons,
+  GridRowEditStopReasons
 } from '@mui/x-data-grid';
 
-// Custom toolbar for AssignmentDataGrid
-function EditToolbar({ setFilterCourse, data, setData, setRowModesModel }) {
-  const [selectedCourse, setSelectedCourse] = useState("");
-
-  // Get unique course names for dropdown
-  const courseNames = [...new Set(data.map((row) => row.courseName))];
-
-  // Function to handle course selection
-  const handleChange = (event) => {
-    const value = event.target.value;
-    setSelectedCourse(value);
-    setFilterCourse(value); // Pass selected course to parent
-  };
-
-  // Function to handle Add button click
+function EditToolbar({ setFilterCourse, assignments, courses, assignmentTypes, setAssignments, setRowModesModel, selectedCourse }) {
   const handleAddClick = () => {
-    const newId = data.length + 1; // Simple ID generation
-    //clear form for new row
+    const tempId = Date.now();
+    const defaultCourse = selectedCourse || courses[0]?.courseName || "";
+    const defaultType = assignmentTypes[0]?.typeName || "";
+
     const newRow = {
-      assignmentId: newId,
-      typeName: "",
+      assignmentId: tempId,
+      typeName: defaultType,
       assignmentName: "",
       description: "",
-      dueDate: "",
-      possiblePoints: "",
-      weight: "",
-      courseName: "",
+      dueDate: new Date().toISOString().split('T')[0],
+      possiblePoints: 100,
+      weight: 0.1,
+      courseName: defaultCourse,
       isNew: true,
     };
-    setData((prevData) => [...prevData, newRow]); // Add new row
-    setRowModesModel((prevModes) => ({ // Set new row to edit
-      ...prevModes,
-      [newId]: { mode: "edit", fieldToFocus: "typeName" },
+    
+    setAssignments(prev => [...prev, newRow]);
+    setRowModesModel(prev => ({
+      ...prev,
+      [tempId]: { mode: GridRowModes.Edit, fieldToFocus: "assignmentName" },
     }));
   };
 
   return (
-    // Custom toolbar
-    <GridToolbarContainer sx={{
-      display: "flex",
-      alignItems: "center",
-      gap: 2,
-      padding: "12px 16px", // Increase padding
-      height: "70px", // Increase height
-      fontSize: "1.1rem", // Increase font size
-      backgroundColor: "#f5f5f5", // Optional: Light gray background
-    }}>
-      {/* Course Filter Dropdown */}
+    <GridToolbarContainer sx={toolbarStyles}>
       <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel shrink sx={{
-      transform: "translate(14px, -9px) scale(0.75)", // Adjust position & size
-      fontSize: "0.75rem", // Smaller text size
-    }}>Filter by Course</InputLabel>
-        <Select value={selectedCourse} onChange={handleChange} displayEmpty>
+        <InputLabel shrink sx={inputLabelStyles}>Filter by Course</InputLabel>
+        <Select 
+          value={selectedCourse} 
+          onChange={(e) => setFilterCourse(e.target.value)}
+        >
           <MenuItem value="">All Courses</MenuItem>
-          {courseNames.map((course) => (
-            <MenuItem key={course} value={course}>
-              {course}
+          {courses.map((course) => (
+            <MenuItem key={course.courseId} value={course.courseName}>
+              {course.courseName}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
 
-      {/* Add Assignment Button */}
       <Button
         color="primary"
         startIcon={<AddIcon />}
@@ -92,185 +70,151 @@ function EditToolbar({ setFilterCourse, data, setData, setRowModesModel }) {
   );
 }
 
-// AssignmentDataGrid component
-export default function AssignmentDataGrid() {
-  const [data, setData] = useState([]); // State to hold assignment data
-  const [filterCourse, setFilterCourse] = useState(""); // State to hold selected course
-  const [rowModesModel, setRowModesModel] = useState({}); // State to hold row edit modes
+const AssignmentDataGrid = () => {
+  const [assignments, setAssignments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [assignmentTypes, setAssignmentTypes] = useState([]);
+  const [filterCourse, setFilterCourse] = useState("");
+  const [rowModesModel, setRowModesModel] = useState({});
 
-// fetchData function to fetch all assignments from the server
   useEffect(() => {
-    const fetchData = async () => { 
+    const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/assignments");
-        setData(response.data);
+        const [assignmentsRes, coursesRes, typesRes] = await Promise.all([
+          axios.get("http://localhost:5000/api/assignments"),
+          axios.get("http://localhost:5000/api/courses"),
+          axios.get("http://localhost:5000/api/assignmenttypes")
+        ]);
+        
+        setCourses(coursesRes.data);
+        setAssignmentTypes(typesRes.data);
+        
+        const mergedData = assignmentsRes.data.map(assignment => ({
+          ...assignment,
+          courseName: coursesRes.data.find(c => c.courseId === assignment.courseId)?.courseName || "",
+          typeName: typesRes.data.find(t => t.typeId === assignment.assignmentTypeID)?.typeName || ""
+        }));
+
+        setAssignments(mergedData);
       } catch (error) {
-        console.error("Failed to fetch assignments:", error);
+        console.error("Data fetch failed:", error);
       }
     };
     fetchData();
   }, []);
 
-  // filteredData function to filter data based on selected course
-  const filteredData = filterCourse
-    ? data.filter((item) => item.courseName === filterCourse)
-    : data;
-
-  // Function to handle row edit
-  const handleRowEditStop = (params, event) => {
-    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true;
-    }
-  };
-
-  // Function to handle edit click
-  const handleEditClick = (assignmentId) => () => {
-    setRowModesModel({ ...rowModesModel, [assignmentId]: { mode: GridRowModes.Edit } });
-  };
-
-  // Function to handle save click
-  const handleSaveClick = (assignmentId) => () => {
-    setRowModesModel({ ...rowModesModel, [assignmentId]: { mode: GridRowModes.View } });
-  };
-
-// Function to handle delete click
-  const handleDeleteClick = (assignmentId) => async () => {
-    try {
-      await axios.delete(`http://localhost:5000/api/assignments/${assignmentId}`);
-      setData((prev) => prev.filter((row) => row.assignmentId !== assignmentId));
-    } catch (error) {
-      console.error("Failed to delete assignment:", error.response?.data || error.message);
-    }
-  };
-
-  // Function to handle cancel click
-  const handleCancelClick = (assignmentId) => () => {
+  const handleCancelClick = (id) => () => {
     setRowModesModel({
       ...rowModesModel,
-      [assignmentId]: { mode: GridRowModes.View, ignoreModifications: true },
+      [id]: { mode: GridRowModes.View, ignoreModifications: true },
     });
 
-    // If the row is new, remove it from the data
-    const editedRow = data.find((data) => data.assignmentId === assignmentId);
-    if (editedRow.isNew) {
-      setData(data.filter((data) => data.assignmentId !== assignmentId));
-    }
+    setAssignments(prev => prev.filter(row => row.assignmentId !== id || !row.isNew));
   };
 
-// Function to process row update
+  const handleSaveClick = (id) => () => {
+    setRowModesModel({
+      ...rowModesModel,
+      [id]: { mode: GridRowModes.View },
+    });
+  };
+
   const processRowUpdate = async (newRow) => {
-    const updatedRow = { ...newRow, isNew: false };
-  
     try {
-      await axios.post('http://localhost:5000/api/assignments', updatedRow);
-      setData((prev) =>
-        prev.map((row) =>
-          row.assignmentId === updatedRow.assignmentId ? updatedRow : row
-        )
-      );
+      const course = courses.find(c => c.courseName === newRow.courseName);
+      const type = assignmentTypes.find(t => t.typeName === newRow.typeName);
+      
+      if (!course || !type) {
+        throw new Error("Course or Type not found");
+      }
+
+      const payload = {
+        assignmentName: newRow.assignmentName,
+        description: newRow.description,
+        dueDate: newRow.dueDate,
+        possiblePoints: newRow.possiblePoints,
+        weight: newRow.weight,
+        courseId: course.courseId,
+        assignmentTypeID: type.typeId
+      };
+
+      const { data: savedAssignment } = newRow.isNew
+        ? await axios.post('http://localhost:5000/api/assignments', payload)
+        : await axios.put(`http://localhost:5000/api/assignments/${newRow.assignmentId}`, payload);
+
+      const updatedRow = {
+        ...savedAssignment,
+        courseName: course.courseName,
+        typeName: type.typeName,
+        isNew: false
+      };
+
+      setAssignments(prev => {
+        if (newRow.isNew) {
+          return [...prev.filter(r => r.assignmentId !== newRow.assignmentId), updatedRow];
+        }
+        return prev.map(r => r.assignmentId === updatedRow.assignmentId ? updatedRow : r);
+      });
+
+      return updatedRow;
     } catch (error) {
-      console.error("Failed to save assignment:", error.response?.data || error.message);
+      console.error("Update failed:", error);
+      throw error;
     }
-  
-    return updatedRow;
   };
 
-  const handleRowModesModelChange = (newRowModesModel) => {
-    setRowModesModel(newRowModesModel);
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/assignments/${id}`);
+      setAssignments(prev => prev.filter(r => r.assignmentId !== id));
+    } catch (error) {
+      console.error("Delete failed:", error);
+    }
   };
 
   const columns = [
-    {
-      field: 'assignmentId',
-      headerName: 'ID',
-      //type: 'string',
-      width: 20,
-      align: 'left',
-      headerAlign: 'left',
-      //editable: true,
-    },
+    { field: 'assignmentId', headerName: 'ID', width: 60, editable: false },
     { 
       field: 'typeName', 
       headerName: 'Type', 
-      width: 120, 
+      width: 150,
       editable: true,
-      //type: 'singleSelect',
-      //valueOptions: [data.assignmentTypeId],
+      type: 'singleSelect',
+      valueOptions: assignmentTypes.map(t => t.typeName),
     },
-    {
-      field: 'assignmentName',
-      headerName: 'Title',
-      type: 'string',
-      width: 200,
-      align: 'left',
-      headerAlign: 'left',
-      editable: true,
-    },
-    {
-      field: 'description',
-      headerName: 'Description',
-      width: 350,
-      align: 'left',
-      headerAlign: 'left',
-      editable: true,
-    },
-    {
-      field: 'dueDate',
-      headerName: 'Due date',
-      type: 'string',
-      width: 120,
-      editable: true,
-    },
-    {
-      field: 'possiblePoints',
-      headerName: 'Possible Points',
-      type: 'number',
-      width: 120,
-      align: 'left',
-      headerAlign: 'left',
-      editable: true,
-    },
-    {
-      field: 'weight',
-      headerName: 'Weight',
-      type: 'number',
-      width: 75,
-      align: 'left',
-      headerAlign: 'left',
-      editable: true,
-    },
+    { field: 'assignmentName', headerName: 'Title', width: 200, editable: true },
+    { field: 'description', headerName: 'Description', width: 300, editable: true },
+    { field: 'dueDate', headerName: 'Due Date', width: 150, editable: true },
+    { field: 'possiblePoints', headerName: 'Points', width: 100, type: 'number', editable: true },
+    { field: 'weight', headerName: 'Weight', width: 100, type: 'number', editable: true },
     {
       field: 'courseName',
       headerName: 'Course',
-      width: 120,
-      hide: true,
+      width: 180,
+      editable: true,
+      type: 'singleSelect',
+      valueOptions: courses.map(c => c.courseName),
     },
     {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
       width: 100,
-      cellClassName: 'actions',
-      getActions: ({ assignmentId }) => {
-        const isInEditMode = rowModesModel[assignmentId]?.mode === GridRowModes.Edit;
+      getActions: ({ id }) => {
+        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
         if (isInEditMode) {
           return [
             <GridActionsCellItem
               icon={<SaveIcon />}
               label="Save"
-              sx={{
-                color: 'primary.main',
-              }}
-              onClick={handleSaveClick(assignmentId)}
+              onClick={handleSaveClick(id)}
             />,
             <GridActionsCellItem
               icon={<CancelIcon />}
               label="Cancel"
-              className="textPrimary"
-              onClick={handleCancelClick(assignmentId)}
+              onClick={handleCancelClick(id)}
               color="inherit"
-            />,
+            />
           ];
         }
 
@@ -278,51 +222,76 @@ export default function AssignmentDataGrid() {
           <GridActionsCellItem
             icon={<EditIcon />}
             label="Edit"
-            className="textPrimary"
-            onClick={handleEditClick(assignmentId)}
-            color="inherit"
+            onClick={() => setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } })}
           />,
           <GridActionsCellItem
             icon={<DeleteIcon />}
             label="Delete"
-            onClick={handleDeleteClick(assignmentId)}
-            color="inherit"
-          />,
+            onClick={() => handleDelete(id)}
+          />
         ];
-      },
-    },
+      }
+    }
   ];
 
+  const filteredRows = filterCourse 
+    ? assignments.filter(row => row.courseName === filterCourse)
+    : assignments;
+
   return (
-    <Box
-      sx={{
-        maxheight: 1000,
-        width: '100%',
-        '& .actions': {
-          color: 'text.secondary',
-        },
-        '& .textPrimary': {
-          color: 'text.primary',
-        },
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <Box sx={containerStyles}>
       <DataGrid
-        rows={filteredData}
+        rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.assignmentId}
         editMode="row"
         rowModesModel={rowModesModel}
-        onRowModesModelChange={handleRowModesModelChange}
-        onRowEditStop={handleRowEditStop}
+        onRowModesModelChange={setRowModesModel}
+        onRowEditStop={(params, event) => {
+          if (params.reason === GridRowEditStopReasons.rowFocusOut) {
+            event.defaultMuiPrevented = true;
+          }
+        }}
         processRowUpdate={processRowUpdate}
+        onProcessRowUpdateError={(error) => console.error("Update error:", error)}
         slots={{ toolbar: EditToolbar }}
         slotProps={{
-          toolbar: { setFilterCourse, data, setData, setRowModesModel },
+          toolbar: { 
+            setFilterCourse,
+            assignments,
+            courses,
+            assignmentTypes,
+            setAssignments,
+            setRowModesModel,
+            selectedCourse: filterCourse
+          },
         }}
       />
-      </div>
     </Box>
   );
-}
+};
 
+// Styles
+const toolbarStyles = {
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+  padding: "12px 16px",
+  height: "70px",
+  fontSize: "1.1rem",
+  backgroundColor: "#f5f5f5",
+};
+
+const inputLabelStyles = {
+  transform: "translate(14px, -9px) scale(0.75)",
+  fontSize: "0.75rem"
+};
+
+const containerStyles = {
+  maxHeight: 1000,
+  width: '100%',
+  '& .actions': { color: 'text.secondary' },
+  '& .textPrimary': { color: 'text.primary' },
+};
+
+export default AssignmentDataGrid;
