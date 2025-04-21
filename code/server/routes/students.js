@@ -5,7 +5,8 @@ const {
   getStudentById,
   addStudent,
   updateStudent,
-  deleteStudent
+  deleteStudent,
+  findStudentByUsername
 } = require('../db/studentQueries');
 
 //Get all students from the database
@@ -57,6 +58,23 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Student deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete student' });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const student = await findStudentByUsername(username);
+    if (!student) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (student.password !== password) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+    res.json({ message: "Login successful", student });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

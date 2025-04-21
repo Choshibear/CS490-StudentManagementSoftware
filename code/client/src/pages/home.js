@@ -1,7 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Paper, Grid } from "@mui/material";
 
 function Home() {
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (userData) {
+      setUserName(`${userData.firstName} ${userData.lastName}`);
+    }
+  }, []);
+
   return (
     <Box
       sx={{
@@ -23,7 +32,7 @@ function Home() {
         }}
       >
         <Typography variant="h5" fontWeight="bold">
-          Welcome back, Linda Johnson!
+          Welcome back, {userName}!
         </Typography>
       </Paper>
 
