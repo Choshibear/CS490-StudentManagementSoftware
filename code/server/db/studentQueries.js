@@ -50,4 +50,11 @@ async function deleteStudent(id) {
     await connection.end();
 }
 
-module.exports = { getAllStudents, getStudentById, addStudent, updateStudent, deleteStudent };
+async function findStudentByUsername(username) {
+    const connection = await getConnection();
+    const [rows] = await connection.query('SELECT * FROM students WHERE username = ?', [username]);
+    await connection.end();
+    return rows[0];
+}
+
+module.exports = { getAllStudents, getStudentById, addStudent, updateStudent, deleteStudent, findStudentByUsername };
