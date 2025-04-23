@@ -35,7 +35,8 @@ async function addAssignment(assignment) {
 async function updateAssignment(id, updatedFields) {
     const connection = await getConnection();
     const { assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId } = updatedFields;
-    await connection.query(
+    console.log("Updating assignment in DB:", id, updatedFields)
+    await connection.execute(
         'UPDATE assignments SET assignmentTypeID = ?, assignmentName = ?, description = ?, dueDate = ?, possiblePoints = ?, weight = ?, courseId = ? WHERE assignmentId = ?',
         [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId, id]
     );

@@ -36,8 +36,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const id = await addAssignment(req.body);
+    const assignment = await getAssignmentById(id); // <-- fetch the full new record
     res.status(201).json({ message: 'Assignment created', id });
   } catch (err) {
+    console.error('Error adding assignment:', err);
     res.status(500).json({ error: 'Failed to add assignment' });
   }
 });
@@ -46,8 +48,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     await updateAssignment(req.params.id, req.body);
-    res.json({ message: 'Assignment updated' });
+    const updatedAssignment = await getAssignmentById(req.params.id); // Fetch updated row
+    res.json(updatedAssignment); // Return updated row
   } catch (err) {
+    console.error("Update error:", err);
     res.status(500).json({ error: 'Failed to update assignment' });
   }
 });

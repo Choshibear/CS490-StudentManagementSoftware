@@ -152,8 +152,10 @@ const AssignmentDataGrid = () => {
       setAssignments(prev => {
         if (newRow.isNew) {
           return [...prev.filter(r => r.assignmentId !== newRow.assignmentId), updatedRow];
+        } else {
+          return prev.map(r =>
+            r.assignmentId === newRow.assignmentId ? updatedRow : r);
         }
-        return prev.map(r => r.assignmentId === updatedRow.assignmentId ? updatedRow : r);
       });
 
       return updatedRow;

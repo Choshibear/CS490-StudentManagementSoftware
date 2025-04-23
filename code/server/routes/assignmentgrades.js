@@ -3,10 +3,15 @@ const router = express.Router();
 const {
     getAllAssignmentGrades,
     getAssignmentGradeById,
+    getAssignmentGradesByCourseId,
     addAssignmentGrade,
     updateAssignmentGrade,
     deleteAssignmentGrade
 } = require('../db/assignmentgradesQueries');
+
+router.use(express.json());
+
+
 
 //Get all assignmentGrades from the database
 router.get('/', async (req, res) => {
@@ -30,6 +35,20 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+
+//Get assignmentGrades by courseId
+router.get('/course/:courseId', async (req, res) => {
+    try {
+        const assignmentGradesByCourse = await getAssignmentGradesByCourseId(req.params.courseId);
+        res.json(assignmentGradesByCourse);
+    } catch (err) {
+        console.error('Error fetching grades by course:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+
 //Add a new assignmentGrade
 router.post('/', async (req, res) => {
     try {
@@ -40,15 +59,19 @@ router.post('/', async (req, res) => {
     }
 });
 
+
 //Update an existing assignmentGrade
-router.put('/:id', async (req, res) => {
+router.put('/update', async (req, res) => {
     try {
-        await updateAssignmentGrade(req.params.id, req.body);
+        await updateAssignmentGrade(req.body);
         res.json({ message: 'AssignmentGrade updated' });
     } catch (err) {
+        console.error("Grade update error:", err);
         res.status(500).json({ error: 'Failed to update AssignmentGrade' });
     }
 });
+
+
 
 //Delete an existing assignmentGrade
 router.delete('/:id', async (req, res) => {
