@@ -18,28 +18,30 @@ import {
 
 function EditToolbar({ setFilterCourse, assignments, courses, assignmentTypes, setAssignments, setRowModesModel, selectedCourse }) {
   const handleAddClick = () => {
-    const tempId = Date.now();
+    const newId = Math.max(0, ...assignments.map(a => a.assignmentId)) + 1;
     const defaultCourse = selectedCourse || courses[0]?.courseName || "";
     const defaultType = assignmentTypes[0]?.typeName || "";
 
     const newRow = {
-      assignmentId: tempId,
+      assignmentId: newId,
       typeName: defaultType,
       assignmentName: "",
       description: "",
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: "",
       possiblePoints: 100,
       weight: 0.1,
       courseName: defaultCourse,
       isNew: true,
     };
     
+    
     setAssignments(prev => [...prev, newRow]);
     setRowModesModel(prev => ({
       ...prev,
-      [tempId]: { mode: GridRowModes.Edit, fieldToFocus: "assignmentName" },
+      [newId]: { mode: GridRowModes.Edit, fieldToFocus: "assignmentName" },
     }));
   };
+
 
   return (
     <GridToolbarContainer sx={toolbarStyles}>
@@ -85,16 +87,29 @@ const AssignmentDataGrid = () => {
           axios.get("http://localhost:5000/api/courses"),
           axios.get("http://localhost:5000/api/assignmenttypes")
         ]);
+            
         
+        const formatDate = (isoDate) => {
+          const date = new Date(isoDate);
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          const yyyy = date.getFullYear();
+          return `${mm}-${dd}-${yyyy}`;
+        };
+        
+        const mergedData = assignmentsRes.data.map(assignment => {
+          const course = coursesRes.data.find(c => c.courseId === assignment.courseId);
+          const type = typesRes.data.find(t => t.typeId === assignment.assignmentTypeID);
+          return {
+            ...assignment,
+            courseName: course?.courseName || "",
+            typeName: type?.typeName || "",
+            dueDate: formatDate(assignment.dueDate)
+          };
+        });
+
         setCourses(coursesRes.data);
         setAssignmentTypes(typesRes.data);
-        
-        const mergedData = assignmentsRes.data.map(assignment => ({
-          ...assignment,
-          courseName: coursesRes.data.find(c => c.courseId === assignment.courseId)?.courseName || "",
-          typeName: typesRes.data.find(t => t.typeId === assignment.assignmentTypeID)?.typeName || ""
-        }));
-
         setAssignments(mergedData);
       } catch (error) {
         console.error("Data fetch failed:", error);
@@ -103,61 +118,42 @@ const AssignmentDataGrid = () => {
     fetchData();
   }, []);
 
-  const handleCancelClick = (id) => () => {
-    setRowModesModel({
-      ...rowModesModel,
-      [id]: { mode: GridRowModes.View, ignoreModifications: true },
-    });
-
-    setAssignments(prev => prev.filter(row => row.assignmentId !== id || !row.isNew));
-  };
-
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({
-      ...rowModesModel,
-      [id]: { mode: GridRowModes.View },
-    });
-  };
 
   const processRowUpdate = async (newRow) => {
     try {
-      const course = courses.find(c => c.courseName === newRow.courseName);
-      const type = assignmentTypes.find(t => t.typeName === newRow.typeName);
-      
-      if (!course || !type) {
-        throw new Error("Course or Type not found");
+    const course = courses.find(c => c.courseName === newRow.courseName);
+    const type = assignmentTypes.find(t => t.typeName === newRow.typeName);
+
+    if (!course || !type) throw new Error("Invalid course or type");
+
+    const payload = {
+      assignmentId: newRow.assignmentId,
+      assignmentTypeID: type.typeId,
+      assignmentName: newRow.assignmentName,
+      description: newRow.description,
+      dueDate: newRow.dueDate,
+      possiblePoints: newRow.possiblePoints,
+      weight: newRow.weight,
+      courseId: course.courseId
+    };
+
+    let response;
+      if (newRow.isNew) {
+        response = await axios.post("http://localhost:5000/api/assignments", payload);
+      } else {
+        response = await axios.put(`http://localhost:5000/api/assignments/${newRow.assignmentId}`, payload);
       }
 
-      const payload = {
-        assignmentName: newRow.assignmentName,
-        description: newRow.description,
-        dueDate: newRow.dueDate,
-        possiblePoints: newRow.possiblePoints,
-        weight: newRow.weight,
-        courseId: course.courseId,
-        assignmentTypeID: type.typeId
-      };
+      const savedAssignment = response.data;
 
-      const { data: savedAssignment } = newRow.isNew
-        ? await axios.post('http://localhost:5000/api/assignments', payload)
-        : await axios.put(`http://localhost:5000/api/assignments/${newRow.assignmentId}`, payload);
+    const updatedRow = {
+      ...savedAssignment,
+      courseName: course.courseName,
+      typeName: type.typeName,
+      isNew: false
+    };
 
-      const updatedRow = {
-        ...savedAssignment,
-        courseName: course.courseName,
-        typeName: type.typeName,
-        isNew: false
-      };
-
-      setAssignments(prev => {
-        if (newRow.isNew) {
-          return [...prev.filter(r => r.assignmentId !== newRow.assignmentId), updatedRow];
-        } else {
-          return prev.map(r =>
-            r.assignmentId === newRow.assignmentId ? updatedRow : r);
-        }
-      });
-
+    setAssignments((prev) => prev.map((row) => row.assignmentId === updatedRow.assignmentId ? updatedRow : row));
       return updatedRow;
     } catch (error) {
       console.error("Update failed:", error);
@@ -165,14 +161,38 @@ const AssignmentDataGrid = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleRowModesModelChange = (newModel) => {
+    setRowModesModel(newModel);
+  };
+
+  const handleRowEditStop = (params, event) => {
+    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
+      event.defaultMuiPrevented = true;
+    }
+  };
+
+  const handleDeleteClick = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/assignments/${id}`);
-      setAssignments(prev => prev.filter(r => r.assignmentId !== id));
+      const target = assignments.find((row) => row.assignmentId === id);
+      if (!target) return;
+  
+      if (target.isNew) {
+        // If it's a new unsaved row, just remove from state
+        setAssignments((prev) => prev.filter((row) => row.assignmentId !== id));
+        return;
+      }
+  
+      // Delete from server
+      await axios.delete('http://localhost:5000/api/assignments/${id}');
+      
+      // Remove from state
+      setAssignments((prev) => prev.filter((row) => row.assignmentId !== id));
     } catch (error) {
       console.error("Delete failed:", error);
     }
   };
+
+  
 
   const columns = [
     { field: 'assignmentId', headerName: 'ID', width: 60, editable: false },
@@ -201,44 +221,16 @@ const AssignmentDataGrid = () => {
       field: 'actions',
       type: 'actions',
       width: 100,
-      getActions: ({ id }) => {
-        const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
-
-        if (isInEditMode) {
-          return [
-            <GridActionsCellItem
-              icon={<SaveIcon />}
-              label="Save"
-              onClick={handleSaveClick(id)}
-            />,
-            <GridActionsCellItem
-              icon={<CancelIcon />}
-              label="Cancel"
-              onClick={handleCancelClick(id)}
-              color="inherit"
-            />
-          ];
-        }
-
-        return [
-          <GridActionsCellItem
-            icon={<EditIcon />}
-            label="Edit"
-            onClick={() => setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } })}
-          />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
-            label="Delete"
-            onClick={() => handleDelete(id)}
-          />
-        ];
-      }
+      getActions: ({ id }) => [
+        <GridActionsCellItem icon={<SaveIcon />} label="Save" onClick={() => { setRowModesModel((prev) => ({ ...prev, [id]: { mode: GridRowModes.View } } )); }} showInMenu/>,
+        <GridActionsCellItem icon={<EditIcon />} label="Edit" onClick={() => setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } })} />,
+        <GridActionsCellItem icon={<DeleteIcon />} label="Delete" onClick={() => handleDeleteClick(id)} color="inherit" />
+      ]
     }
   ];
 
-  const filteredRows = filterCourse 
-    ? assignments.filter(row => row.courseName === filterCourse)
-    : assignments;
+  const filteredRows = filterCourse ? assignments.filter(row => row.courseName === filterCourse) : assignments;
+
 
   return (
     <Box sx={containerStyles}>
@@ -248,14 +240,25 @@ const AssignmentDataGrid = () => {
         getRowId={(row) => row.assignmentId}
         editMode="row"
         rowModesModel={rowModesModel}
-        onRowModesModelChange={setRowModesModel}
+        onRowModesModelChange={handleRowModesModelChange}
+        processRowUpdate={processRowUpdate}
+        experimentalFeatures={{ newEditingApi: true }}
         onRowEditStop={(params, event) => {
-          if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-            event.defaultMuiPrevented = true;
+          if (params.reason === GridRowEditStopReasons.rowFocusOut ||
+              params.reason === GridRowEditStopReasons.enterKeyDown) {
+            // Allow save on Enter or blur
+            event.defaultMuiPrevented = false;
           }
         }}
-        processRowUpdate={processRowUpdate}
-        onProcessRowUpdateError={(error) => console.error("Update error:", error)}
+        initialState={{
+          pagination: {
+            paginationModel: {
+              pageSize: 30,
+              page: 0,
+            },
+          },
+        }} // Default rows per page
+        pageSizeOptions={[10, 30, 50, 100]} // Dropdown choices
         slots={{ toolbar: EditToolbar }}
         slotProps={{
           toolbar: { 
@@ -290,7 +293,6 @@ const inputLabelStyles = {
 };
 
 const containerStyles = {
-  maxHeight: 1000,
   width: '100%',
   '& .actions': { color: 'text.secondary' },
   '& .textPrimary': { color: 'text.primary' },

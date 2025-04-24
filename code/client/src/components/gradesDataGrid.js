@@ -8,20 +8,13 @@ import React, { useEffect, useState } from "react";
    InputLabel,
    Select,
    MenuItem
- } from "@mui/material";
+} from "@mui/material";
+ import Box from '@mui/material/Box';
  import axios from "axios";
  
  const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
    return (
-     <GridToolbarContainer sx={{
-       display: "flex",
-       alignItems: "center",
-       gap: 2,
-       padding: "12px 16px",
-       height: "70px",
-       fontSize: "1.1rem",
-       backgroundColor: "#f5f5f5",
-     }}>
+     <GridToolbarContainer sx={toolbarStyles}>
        <FormControl size="small" sx={{ minWidth: 200 }}>
          <InputLabel shrink sx={{
                transform: "translate(14px, -9px) scale(0.75)", // Adjust position & size
@@ -154,13 +147,22 @@ import React, { useEffect, useState } from "react";
    };
  
    return (
-     <div style={{ height: 600, width: '100%' }}>
+     <Box sx={containerStyles}>
        <DataGrid
          rows={gradesData}
          columns={getColumns()}
          processRowUpdate={handleRowUpdate}
          onProcessRowUpdateError={(err) => console.error(err)}
          experimentalFeatures={{ newEditingApi: true }}
+         initialState={{
+          pagination: {
+            paginationModel: {
+              pageSize: 30,
+              page: 0,
+            },
+          },
+        }} // Default rows per page
+         pageSizeOptions={[10, 30, 50, 100]} // Dropdown choices
          slots={{
            toolbar: EditToolbar
          }}
@@ -173,8 +175,25 @@ import React, { useEffect, useState } from "react";
          }}
          disableColumnMenu
        />
-     </div>
+     </Box>
    );
- };
+};
+ 
+//Styles
+const toolbarStyles = {
+  display: "flex",
+  alignItems: "center",
+  gap: 2,
+  padding: "12px 16px",
+  height: "70px",
+  fontSize: "1.1rem",
+  backgroundColor: "#f5f5f5",
+};
+
+const containerStyles = {
+  width: '100%',
+  '& .actions': { color: 'text.secondary' },
+  '& .textPrimary': { color: 'text.primary' },
+};
  
  export default Gradebook;
