@@ -48,7 +48,7 @@ function EditToolbar({ setFilterCourse, assignments, courses, assignmentTypes, s
       <FormControl size="small" sx={{ minWidth: 200 }}>
         <InputLabel shrink sx={inputLabelStyles}>Filter by Course</InputLabel>
         <Select 
-          value={selectedCourse} 
+          value={selectedCourse}
           onChange={(e) => setFilterCourse(e.target.value)}
         >
           <MenuItem value="">All Courses</MenuItem>
@@ -293,6 +293,7 @@ const inputLabelStyles = {
 };
 
 const containerStyles = {
+  maxHeight: 1000,
   width: '100%',
   '& .actions': { color: 'text.secondary' },
   '& .textPrimary': { color: 'text.primary' },

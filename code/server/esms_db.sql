@@ -283,6 +283,14 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
+CREATE TABLE IF NOT EXISTS attendance (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    date DATE NOT NULL,
+    status ENUM('present', 'absent', 'late', 'excused') NOT NULL DEFAULT 'present',
+    FOREIGN KEY (student_id) REFERENCES students(studentId) ON DELETE CASCADE
+);
+
 -- Dump completed on 2025-04-03 15:50:37
 
 

@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Typography,
   Box,
@@ -13,6 +12,7 @@ import {
   DialogContent,
   DialogActions
 } from "@mui/material";
+import { ThemeContext } from "../ThemeContext";
 
 const initialMessages = [
   {
@@ -50,6 +50,7 @@ const initialMessages = [
 ];
 
 function Inbox() {
+  const { scheme } = useContext(ThemeContext);
   const [messages, setMessages] = useState(initialMessages);
   const [selectedMessage, setSelectedMessage] = useState(initialMessages[0]);
   const [replyText, setReplyText] = useState("");
@@ -63,88 +64,98 @@ function Inbox() {
     setSelectedMessage(msg);
     if (msg.unread) {
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === msg.id ? { ...m, unread: false } : m
-        )
+        prev.map((m) => (m.id === msg.id ? { ...m, unread: false } : m))
       );
     }
   };
 
   return (
-    <Box display="flex" height="100%" sx={{ minHeight: "90vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "90vh",
+        bgcolor: scheme.mainBg,
+        color: scheme.text
+      }}
+    >
       {/* Sidebar */}
-      <Box width="280px" bgcolor="#f9f9f9" borderRight="1px solid #ccc" p={2}>
+      <Box
+        width={280}
+        sx={{
+          bgcolor: scheme.panelBg,
+          borderRight: `1px solid ${scheme.text}`,
+          p: 2
+        }}
+      >
         <Button
           variant="contained"
           fullWidth
+          onClick={() => setOpenCompose(true)}
           sx={{
             mb: 3,
-            backgroundColor: "#1976d2",
-            "&:hover": { backgroundColor: "#1565c0" }
+            backgroundColor: scheme.accent,
+            color: scheme.panelBg,
+            '&:hover': { backgroundColor: scheme.panelBg, color: scheme.accent }
           }}
-          onClick={() => setOpenCompose(true)}
         >
           Compose New Message
         </Button>
 
         {/* Tabs */}
-        <Box display="flex" mb={2}>
-          <Button
-            fullWidth
-            onClick={() => setActiveTab("Inbox")}
-            variant={activeTab === "Inbox" ? "contained" : "outlined"}
-            sx={{
-              backgroundColor: activeTab === "Inbox" ? "#1976d2" : "transparent",
-              color: activeTab === "Inbox" ? "#fff" : "#000"
-            }}
-          >
-            Inbox
-          </Button>
-          <Button
-            fullWidth
-            onClick={() => setActiveTab("Sent")}
-            variant={activeTab === "Sent" ? "contained" : "outlined"}
-            sx={{
-              backgroundColor: activeTab === "Sent" ? "#1976d2" : "transparent",
-              color: activeTab === "Sent" ? "#fff" : "#000"
-            }}
-          >
-            Sent
-          </Button>
+        <Box display="flex" mb={2} gap={1}>
+          {['Inbox', 'Sent'].map((tab) => (
+            <Button
+              key={tab}
+              fullWidth
+              onClick={() => setActiveTab(tab)}
+              variant={activeTab === tab ? 'contained' : 'outlined'}
+              sx={{
+                backgroundColor: activeTab === tab ? scheme.accent : 'transparent',
+                color: activeTab === tab ? scheme.panelBg : scheme.text,
+                borderColor: scheme.text
+              }}
+            >
+              {tab}
+            </Button>
+          ))}
         </Box>
 
-        <List>
-          {(activeTab === "Inbox" ? inboxMessages : sentMessages).map((msg) => (
+        <List sx={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+          {(activeTab === 'Inbox' ? inboxMessages : sentMessages).map((msg) => (
             <ListItem
-              button
               key={msg.id}
-              onClick={() => handleSelectMessage(msg)}
+              button
               selected={selectedMessage.id === msg.id}
+              onClick={() => handleSelectMessage(msg)}
               sx={{
                 mb: 1,
-                backgroundColor: selectedMessage.id === msg.id ? "#e3f2fd" : "inherit",
-                borderRadius: "8px"
+                borderRadius: 1,
+                bgcolor: selectedMessage.id === msg.id ? scheme.accent : scheme.panelBg,
+                '&:hover': { bgcolor: scheme.mainBg }
               }}
             >
               <ListItemText
                 primary={
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <strong>{msg.sender}</strong>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: scheme.text }}>
+                    <Typography component="span" fontWeight="bold">
+                      {msg.sender}
+                    </Typography>
                     {msg.unread && (
                       <Box
-                        width={8}
-                        height={8}
-                        borderRadius="50%"
-                        bgcolor="blue"
+                        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: scheme.accent }}
                       />
                     )}
                   </Box>
                 }
                 secondary={
                   <>
-                    <span>{msg.subject}</span>
+                    <Typography component="span" sx={{ color: scheme.text }}>
+                      {msg.subject}
+                    </Typography>
                     <br />
-                    <small>{msg.date}</small>
+                    <Typography component="small" sx={{ color: scheme.text }}>
+                      {msg.date}
+                    </Typography>
                   </>
                 }
               />
@@ -154,21 +165,21 @@ function Inbox() {
       </Box>
 
       {/* Message Content */}
-      <Box flexGrow={1} p={4}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
+      <Box sx={{ flexGrow: 1, p: 4 }}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ color: scheme.text }}>
           {selectedMessage.subject}
         </Typography>
-        <Typography variant="subtitle1">
+        <Typography variant="subtitle1" sx={{ color: scheme.text }}>
           <strong>From:</strong> {selectedMessage.sender}
         </Typography>
-        <Typography variant="subtitle1" gutterBottom>
+        <Typography variant="subtitle1" gutterBottom sx={{ color: scheme.text }}>
           <strong>Date:</strong> {selectedMessage.date}
         </Typography>
-        <Typography variant="body1" mb={3}>
+        <Typography variant="body1" mb={3} sx={{ color: scheme.text }}>
           {selectedMessage.body}
         </Typography>
 
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ color: scheme.text }}>
           Reply
         </Typography>
         <TextField
@@ -179,13 +190,19 @@ function Inbox() {
           placeholder="Type your reply here..."
           value={replyText}
           onChange={(e) => setReplyText(e.target.value)}
+          sx={{
+            backgroundColor: scheme.panelBg,
+            input: { color: scheme.text },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: scheme.text }
+          }}
         />
         <Button
           variant="contained"
           sx={{
             mt: 2,
-            backgroundColor: "#1976d2",
-            "&:hover": { backgroundColor: "#1565c0" }
+            backgroundColor: scheme.accent,
+            color: scheme.panelBg,
+            '&:hover': { backgroundColor: scheme.panelBg, color: scheme.accent }
           }}
         >
           Send Reply
@@ -193,21 +210,57 @@ function Inbox() {
       </Box>
 
       {/* Compose Message Dialog */}
-      <Dialog open={openCompose} onClose={() => setOpenCompose(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Compose New Message</DialogTitle>
+      <Dialog
+        open={openCompose}
+        onClose={() => setOpenCompose(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { bgcolor: scheme.panelBg, color: scheme.text } }}
+      >
+        <DialogTitle sx={{ color: scheme.text }}>Compose New Message</DialogTitle>
         <DialogContent>
-          <TextField fullWidth margin="dense" label="To" />
-          <TextField fullWidth margin="dense" label="Subject" />
-          <TextField fullWidth margin="dense" multiline rows={4} label="Message" />
+          <TextField
+            fullWidth
+            margin="dense"
+            label="To"
+            sx={{
+              input: { color: scheme.text },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: scheme.text }
+            }}
+          />
+          <TextField
+            fullWidth
+            margin="dense"
+            label="Subject"
+            sx={{
+              input: { color: scheme.text },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: scheme.text }
+            }}
+          />
+          <TextField
+            fullWidth
+            margin="dense"
+            multiline
+            rows={4}
+            label="Message"
+            sx={{
+              input: { color: scheme.text },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: scheme.text }
+            }}
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenCompose(false)} color="inherit">
+          <Button sx={{ color: scheme.text }} onClick={() => setOpenCompose(false)}>
             Cancel
           </Button>
           <Button
             variant="contained"
             onClick={() => setOpenCompose(false)}
-            sx={{ backgroundColor: "#1976d2", "&:hover": { backgroundColor: "#1565c0" } }}
+            sx={{
+              backgroundColor: scheme.accent,
+              color: scheme.panelBg,
+              '&:hover': { backgroundColor: scheme.panelBg, color: scheme.accent }
+            }}
           >
             Send
           </Button>
