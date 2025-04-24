@@ -21,6 +21,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import GradeIcon from "@mui/icons-material/Grade";
 import PersonIcon from "@mui/icons-material/Person";
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -36,6 +37,7 @@ const menuItems = [
   { text: "Coursework", icon: <MenuBookIcon />, path: "/coursework" },
   { text: "Gradebook", icon: <GradeIcon />, path: "/gradebook" },
   { text: "Student Record", icon: <PersonIcon />, path: "/studentrecord" },
+  { text: "Attendance", icon: <EventAvailableIcon />, path: "/attendance" },
   { text: "Inbox", icon: <MailIcon />, path: "/inbox" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" }
 ];

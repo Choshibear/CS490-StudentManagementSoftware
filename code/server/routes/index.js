@@ -6,6 +6,7 @@ const router = express.Router();
 router.use('/assignmentgrades', require('./assignmentgrades'));
 router.use('/assignments', require('./assignments'));
 router.use('/assignmenttypes', require('./assignmenttypes'));
+router.use('/attendance', require('./attendance'));
 router.use('/coursegrades', require('./coursegrades'));
 router.use('/enrollments', require('./enrollments'));
 router.use('/courses', require('./courses'));
