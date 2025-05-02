@@ -1,280 +1,370 @@
-import React, { useEffect, useState } from "react";
-import { MenuItem, Select, FormControl, InputLabel } from "@mui/material";
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/DeleteOutlined';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Close';
-import axios from "axios";
+// src/components/assignmentDataGrid.js
+import React, { useEffect, useState } from 'react';
 import {
-  GridRowModes,
   DataGrid,
-  GridToolbarContainer,
-  GridActionsCellItem,
-  GridRowEditStopReasons
+  GridActionsCellItem
 } from '@mui/x-data-grid';
+import {
+  Box,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button
+} from '@mui/material';
+import {
+  Add   as AddIcon,
+  DeleteOutlined as DeleteIcon,
+  Save  as SaveIcon,
+  Close as CancelIcon,
+  Edit  as EditIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 
-function EditToolbar({ setFilterCourse, assignments, courses, assignmentTypes, setAssignments, setRowModesModel, selectedCourse }) {
-  const handleAddClick = () => {
-    const newId = Math.max(0, ...assignments.map(a => a.assignmentId)) + 1;
-    const defaultCourse = selectedCourse || courses[0]?.courseName || "";
-    const defaultType = assignmentTypes[0]?.typeName || "";
-
-    const newRow = {
-      assignmentId: newId,
-      typeName: defaultType,
-      assignmentName: "",
-      description: "",
-      dueDate: "",
-      possiblePoints: 100,
-      weight: 0.1,
-      courseName: defaultCourse,
-      isNew: true,
-    };
-    
-    
-    setAssignments(prev => [...prev, newRow]);
-    setRowModesModel(prev => ({
-      ...prev,
-      [newId]: { mode: GridRowModes.Edit, fieldToFocus: "assignmentName" },
-    }));
-  };
+const api = axios.create({ baseURL: 'http://localhost:5000/api' });
 
 
-  return (
-    <GridToolbarContainer sx={toolbarStyles}>
-      <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel shrink sx={inputLabelStyles}>Filter by Course</InputLabel>
-        <Select 
-          value={selectedCourse}
-          onChange={(e) => setFilterCourse(e.target.value)}
-        >
-          <MenuItem value="">All Courses</MenuItem>
-          {courses.map((course) => (
-            <MenuItem key={course.courseId} value={course.courseName}>
-              {course.courseName}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <Button
-        color="primary"
-        startIcon={<AddIcon />}
-        onClick={handleAddClick}
-        sx={{ marginLeft: "auto" }}
-      >
-        Add Assignment
-      </Button>
-    </GridToolbarContainer>
-  );
-}
-
-const AssignmentDataGrid = () => {
-  const [assignments, setAssignments] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [assignmentTypes, setAssignmentTypes] = useState([]);
-  const [filterCourse, setFilterCourse] = useState("");
-  const [rowModesModel, setRowModesModel] = useState({});
+export default function AssignmentDataGrid() {
+  const [rows, setRows]               = useState([]);
+  const [courses, setCourses]         = useState([]);
+  const [types, setTypes]             = useState([]);
+  const [filterCourse, setFilterCourse] = useState('');
+  const [editingId, setEditingId]     = useState(null);
+  const [editedRow, setEditedRow]     = useState({});
 
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        const [assignmentsRes, coursesRes, typesRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/assignments"),
-          axios.get("http://localhost:5000/api/courses"),
-          axios.get("http://localhost:5000/api/assignmenttypes")
+        const [aRes, cRes, tRes] = await Promise.all([
+          api.get('/assignments'),
+          api.get('/courses'),
+          api.get('/assignmenttypes')
         ]);
-            
-        
-        const formatDate = (isoDate) => {
-          const date = new Date(isoDate);
-          const mm = String(date.getMonth() + 1).padStart(2, '0');
-          const dd = String(date.getDate()).padStart(2, '0');
-          const yyyy = date.getFullYear();
-          return `${mm}-${dd}-${yyyy}`;
-        };
-        
-        const mergedData = assignmentsRes.data.map(assignment => {
-          const course = coursesRes.data.find(c => c.courseId === assignment.courseId);
-          const type = typesRes.data.find(t => t.typeId === assignment.assignmentTypeID);
-          return {
-            ...assignment,
-            courseName: course?.courseName || "",
-            typeName: type?.typeName || "",
-            dueDate: formatDate(assignment.dueDate)
-          };
-        });
-
-        setCourses(coursesRes.data);
-        setAssignmentTypes(typesRes.data);
-        setAssignments(mergedData);
-      } catch (error) {
-        console.error("Data fetch failed:", error);
+        setCourses(cRes.data);
+        setTypes(tRes.data);
+        setRows(aRes.data);
+      } catch (err) {
+        console.error('Load failed:', err);
       }
-    };
-    fetchData();
+    })();
   }, []);
 
-
-  const processRowUpdate = async (newRow) => {
+  const startEdit = row => {
+    setEditingId(row.assignmentId);
+    setEditedRow({ ...row });
+  };
+  const cancelEdit = () => {
+    if (editedRow.isNew) {
+      setRows(r => r.filter(x => x.assignmentId !== editingId));
+    }
+    setEditingId(null);
+    setEditedRow({});
+  };
+  const saveEdit = async () => {
+    const {
+      assignmentId,
+      isNew,
+      assignmentTypeID,
+      assignmentName,
+      description,
+      dueDate,
+      possiblePoints,
+      weight,
+      courseId
+    } = editedRow;
     try {
-    const course = courses.find(c => c.courseName === newRow.courseName);
-    const type = assignmentTypes.find(t => t.typeName === newRow.typeName);
-
-    if (!course || !type) throw new Error("Invalid course or type");
-
-    const payload = {
-      assignmentId: newRow.assignmentId,
-      assignmentTypeID: type.typeId,
-      assignmentName: newRow.assignmentName,
-      description: newRow.description,
-      dueDate: newRow.dueDate,
-      possiblePoints: newRow.possiblePoints,
-      weight: newRow.weight,
-      courseId: course.courseId
-    };
-
-    let response;
-      if (newRow.isNew) {
-        response = await axios.post("http://localhost:5000/api/assignments", payload);
+      let res;
+      if (isNew) {
+        res = await api.post('/assignments', {
+          assignmentTypeID,
+          assignmentName,
+          description,
+          dueDate,
+          possiblePoints,
+          weight,
+          courseId
+        });
       } else {
-        response = await axios.put(`http://localhost:5000/api/assignments/${newRow.assignmentId}`, payload);
+        res = await api.put(`/assignments/${assignmentId}`, {
+          assignmentTypeID,
+          assignmentName,
+          description,
+          dueDate,
+          possiblePoints,
+          weight,
+          courseId
+        });
       }
+      setRows(r => r.map(rw =>
+        rw.assignmentId === assignmentId ? res.data : rw
+      ));
+      setEditingId(null);
+      setEditedRow({});
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  };
 
-      const savedAssignment = response.data;
+  const handleAdd = () => {
+    // 1) pick default course based on filterCourse, or fallback to first
+    const defaultCourse = filterCourse
+      ? (courses.find(c => c.courseName === filterCourse) || {})
+      : (courses[0] || {});
+    const defaultType   = types[0] || {};
 
-    const updatedRow = {
-      ...savedAssignment,
-      courseName: course.courseName,
-      typeName: type.typeName,
-      isNew: false
+    const tempId = `new-${Date.now()}`;
+    const newRow = {
+      assignmentId:     tempId,
+      assignmentTypeID: defaultType.typeId,
+      assignmentName:   '',
+      description:      '',
+      dueDate:          '',
+      possiblePoints:   0,
+      weight:           0,
+      courseId:         defaultCourse.courseId,
+      isNew:            true
     };
-
-    setAssignments((prev) => prev.map((row) => row.assignmentId === updatedRow.assignmentId ? updatedRow : row));
-      return updatedRow;
-    } catch (error) {
-      console.error("Update failed:", error);
-      throw error;
-    }
+    setRows(r => [...r, newRow]);
+    startEdit(newRow);
   };
 
-  const handleRowModesModelChange = (newModel) => {
-    setRowModesModel(newModel);
-  };
-
-  const handleRowEditStop = (params, event) => {
-    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true;
-    }
-  };
-
-  const handleDeleteClick = async (id) => {
+  const handleDelete = async id => {
     try {
-      const target = assignments.find((row) => row.assignmentId === id);
-      if (!target) return;
-  
-      if (target.isNew) {
-        // If it's a new unsaved row, just remove from state
-        setAssignments((prev) => prev.filter((row) => row.assignmentId !== id));
-        return;
-      }
-  
-      // Delete from server
-      await axios.delete('http://localhost:5000/api/assignments/${id}');
-      
-      // Remove from state
-      setAssignments((prev) => prev.filter((row) => row.assignmentId !== id));
-    } catch (error) {
-      console.error("Delete failed:", error);
+      await api.delete(`/assignments/${id}`);
+      setRows(r => r.filter(x => x.assignmentId !== id));
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
   };
 
-  
+  const displayed = filterCourse
+    ? rows.filter(r => {
+        const c = courses.find(c => c.courseId === r.courseId);
+        return c?.courseName === filterCourse;
+      })
+    : rows;
 
   const columns = [
-    { field: 'assignmentId', headerName: 'ID', width: 60, editable: false },
-    { 
-      field: 'typeName', 
-      headerName: 'Type', 
-      width: 150,
-      editable: true,
-      type: 'singleSelect',
-      valueOptions: assignmentTypes.map(t => t.typeName),
-    },
-    { field: 'assignmentName', headerName: 'Title', width: 200, editable: true },
-    { field: 'description', headerName: 'Description', width: 300, editable: true },
-    { field: 'dueDate', headerName: 'Due Date', width: 150, editable: true },
-    { field: 'possiblePoints', headerName: 'Points', width: 100, type: 'number', editable: true },
-    { field: 'weight', headerName: 'Weight', width: 100, type: 'number', editable: true },
+    { field: 'assignmentId', headerName: 'ID', width: 80 },
     {
-      field: 'courseName',
+      field: 'assignmentTypeID',
+      headerName: 'Type',
+      width: 150,
+      renderCell: params => {
+        const label = types.find(t => t.typeId === params.value)?.typeName || '';
+        return params.row.assignmentId === editingId
+          ? (
+            <Select
+              size="small"
+              value={editedRow.assignmentTypeID}
+              onChange={e => setEditedRow(er => ({ ...er, assignmentTypeID: e.target.value }))}
+              fullWidth
+            >
+              {types.map(t => (
+                <MenuItem key={t.typeId} value={t.typeId}>
+                  {t.typeName}
+                </MenuItem>
+              ))}
+            </Select>
+          )
+          : label;
+      }
+    },
+    {
+      field: 'assignmentName',
+      headerName: 'Title',
+      width: 200,
+      renderCell: params =>
+        params.row.assignmentId === editingId
+          ? <TextField
+              size="small"
+              value={editedRow.assignmentName}
+              onChange={e => setEditedRow(er => ({ ...er, assignmentName: e.target.value }))}
+              fullWidth
+            />
+          : params.value
+    },
+    {
+      field: 'description',
+      headerName: 'Description',
+      width: 300,
+      renderCell: params =>
+        params.row.assignmentId === editingId
+          ? <TextField
+              size="small"
+              value={editedRow.description}
+              onChange={e => setEditedRow(er => ({ ...er, description: e.target.value }))}
+              fullWidth
+            />
+          : params.value
+    },
+    {
+      field: 'dueDate',
+      headerName: 'Due Date',
+      width: 150,
+      renderCell: params =>
+        params.row.assignmentId === editingId
+          ? <TextField
+              type="date"
+              size="small"
+              value={editedRow.dueDate}
+              onChange={e => setEditedRow(er => ({ ...er, dueDate: e.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          : (() => {
+              const d = new Date(params.value);
+              if (isNaN(d)) return '';
+              const mm = String(d.getMonth()+1).padStart(2,'0');
+              const dd = String(d.getDate()).padStart(2,'0');
+              const yyyy = d.getFullYear();
+              return `${mm}/${dd}/${yyyy}`;
+            })()
+    },
+    {
+      field: 'possiblePoints',
+      headerName: 'Points',
+      width: 120,
+      renderCell: params =>
+        params.row.assignmentId === editingId
+          ? <TextField
+              type="number"
+              size="small"
+              value={editedRow.possiblePoints}
+              onChange={e => setEditedRow(er => ({ ...er, possiblePoints: +e.target.value }))}
+              fullWidth
+            />
+          : params.value
+    },
+    {
+      field: 'weight',
+      headerName: 'Weight',
+      width: 120,
+      renderCell: params =>
+        params.row.assignmentId === editingId
+          ? <TextField
+              type="number"
+              size="small"
+              value={editedRow.weight}
+              onChange={e => setEditedRow(er => ({ ...er, weight: +e.target.value }))}
+              fullWidth
+            />
+          : params.value
+    },
+    {
+      field: 'courseId',
       headerName: 'Course',
       width: 180,
-      editable: true,
-      type: 'singleSelect',
-      valueOptions: courses.map(c => c.courseName),
+      renderCell: params => {
+        const label = courses.find(c => c.courseId === params.value)?.courseName || '';
+        return params.row.assignmentId === editingId
+          ? (
+            <Select
+              size="small"
+              value={editedRow.courseId}
+              onChange={e => setEditedRow(er => ({ ...er, courseId: e.target.value }))}
+              fullWidth
+            >
+              {courses.map(c => (
+                <MenuItem key={c.courseId} value={c.courseId}>
+                  {c.courseName}
+                </MenuItem>
+              ))}
+            </Select>
+          )
+          : label;
+      }
     },
     {
       field: 'actions',
       type: 'actions',
-      width: 100,
-      getActions: ({ id }) => [
-        <GridActionsCellItem icon={<SaveIcon />} label="Save" onClick={() => { setRowModesModel((prev) => ({ ...prev, [id]: { mode: GridRowModes.View } } )); }} showInMenu/>,
-        <GridActionsCellItem icon={<EditIcon />} label="Edit" onClick={() => setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } })} />,
-        <GridActionsCellItem icon={<DeleteIcon />} label="Delete" onClick={() => handleDeleteClick(id)} color="inherit" />
-      ]
+      width: 120,
+      getActions: ({ id, row }) => {
+        if (id === editingId) {
+          return [
+            <GridActionsCellItem
+              key="save"
+              icon={<SaveIcon />}
+              label="Save"
+              onClick={saveEdit}
+              color="primary"
+            />,
+            <GridActionsCellItem
+              key="cancel"
+              icon={<CancelIcon />}
+              label="Cancel"
+              onClick={cancelEdit}
+              color="inherit"
+            />
+          ];
+        }
+        return [
+          <GridActionsCellItem
+            key="edit"
+            icon={<EditIcon />}
+            label="Edit"
+            onClick={() => startEdit(row)}
+            color="inherit"
+          />,
+          <GridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon />}
+            label="Delete"
+            onClick={() => handleDelete(id)}
+            color="inherit"
+          />
+        ];
+      }
     }
   ];
 
-  const filteredRows = filterCourse ? assignments.filter(row => row.courseName === filterCourse) : assignments;
-
-
   return (
-    <Box sx={containerStyles}>
-      <DataGrid
-        rows={filteredRows}
-        columns={columns}
-        getRowId={(row) => row.assignmentId}
-        editMode="row"
-        rowModesModel={rowModesModel}
-        onRowModesModelChange={handleRowModesModelChange}
-        processRowUpdate={processRowUpdate}
-        experimentalFeatures={{ newEditingApi: true }}
-        onRowEditStop={(params, event) => {
-          if (params.reason === GridRowEditStopReasons.rowFocusOut ||
-              params.reason === GridRowEditStopReasons.enterKeyDown) {
-            // Allow save on Enter or blur
-            event.defaultMuiPrevented = false;
-          }
-        }}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 30,
-              page: 0,
-            },
-          },
-        }} // Default rows per page
-        pageSizeOptions={[10, 30, 50, 100]} // Dropdown choices
-        slots={{ toolbar: EditToolbar }}
-        slotProps={{
-          toolbar: { 
-            setFilterCourse,
-            assignments,
-            courses,
-            assignmentTypes,
-            setAssignments,
-            setRowModesModel,
-            selectedCourse: filterCourse
-          },
-        }}
-      />
+    <Box>
+      {/* Toolbar */}
+      <Box sx={toolbarStyles}>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel shrink sx={{
+            transform: "translate(14px, -9px) scale(0.75)",
+            fontSize: "0.75rem",
+          }}>
+            Filter by Course
+          </InputLabel>
+          <Select
+            value={filterCourse}
+            displayEmpty
+            onChange={e => setFilterCourse(e.target.value)}
+          >
+            <MenuItem value=""><em>All Courses</em></MenuItem>
+            {courses.map(c => (
+              <MenuItem key={c.courseId} value={c.courseName}>
+                {c.courseName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button
+          startIcon={<AddIcon />}
+          variant="contained"
+          onClick={handleAdd}
+          sx={{ marginLeft: 'auto' }}
+        >
+          Add Assignment
+        </Button>
+      </Box>
+
+      {/* DataGrid */}
+      <Box sx={{ height: 600, ...containerStyles }}>
+        <DataGrid
+          rows={displayed}
+          columns={columns}
+          getRowId={r => r.assignmentId}
+          disableSelectionOnClick
+        />
+      </Box>
     </Box>
   );
-};
+}
 
 // Styles
 const toolbarStyles = {
@@ -286,17 +376,8 @@ const toolbarStyles = {
   fontSize: "1.1rem",
   backgroundColor: "#f5f5f5",
 };
-
-const inputLabelStyles = {
-  transform: "translate(14px, -9px) scale(0.75)",
-  fontSize: "0.75rem"
-};
-
 const containerStyles = {
-  maxHeight: 1000,
   width: '100%',
   '& .actions': { color: 'text.secondary' },
   '& .textPrimary': { color: 'text.primary' },
 };
-
-export default AssignmentDataGrid;

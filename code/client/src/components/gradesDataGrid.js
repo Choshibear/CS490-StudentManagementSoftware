@@ -16,17 +16,15 @@ import React, { useEffect, useState } from "react";
    return (
      <GridToolbarContainer sx={toolbarStyles}>
        <FormControl size="small" sx={{ minWidth: 200 }}>
-         <InputLabel shrink sx={{
-               transform: "translate(14px, -9px) scale(0.75)", // Adjust position & size
-               fontSize: "0.75rem", // Smaller text size
-             }}>Filter by Course</InputLabel>
+         <InputLabel>Filter by Course</InputLabel>
          <Select
            value={selectedCourseId ?? ''}
+           label="Filter by Course"
            onChange={(e) => setSelectedCourseId(Number(e.target.value))}
-           displayEmpty
+           //displayEmpty
          >
            <MenuItem value="">
-             <em>Select a course</em>
+           <em>All Courses</em>
            </MenuItem>
            {courses.map((course) => (
              <MenuItem key={course.courseId} value={course.courseId}>
@@ -42,7 +40,7 @@ import React, { useEffect, useState } from "react";
  const Gradebook = () => {
    const [gradesData, setGradesData] = useState([]);
    const [courses, setCourses] = useState([]);
-   const [selectedCourseId, setSelectedCourseId] = useState(null); // Default courseId = 1
+   const [selectedCourseId, setSelectedCourseId] = useState(''); // Default courseId = 1
  
    useEffect(() => {
      const fetchCourses = async () => {
@@ -157,7 +155,7 @@ import React, { useEffect, useState } from "react";
          initialState={{
           pagination: {
             paginationModel: {
-              pageSize: 30,
+              pageSize: 10,
               page: 0,
             },
           },

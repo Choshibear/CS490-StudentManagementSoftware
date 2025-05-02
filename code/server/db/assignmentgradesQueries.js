@@ -1,128 +1,119 @@
+// server/db/assignmentGradesQueries.js
 const getConnection = require('../db');
 
-//Get all assignmentgrades from the database
+// Fetch all grades
 async function getAllAssignmentGrades() {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM assignmentgrades');
-    await connection.end();
-    return rows;
+  const conn = await getConnection();
+  const [rows] = await conn.query('SELECT * FROM assignmentgrades');
+  await conn.end();
+  return rows;
 }
 
-//Get one assignmentgrade by ID
-//input: id
-async function getAssignmentGradeById(id) {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM assignmentgrades WHERE assignmentgradeid = ?', [id]);
-    await connection.end();
-    return rows[0];
-}
-
-
-
-//Get assignmentgrades by courseId
-//input: courseId
+// Fetch grades by courseId
 async function getAssignmentGradesByCourseId(courseId) {
-    const connection = await getConnection();
-    const query =`
-     SELECT
-       s.studentId AS student_id,
-       CONCAT(s.firstName, ' ', s.lastName) AS student_name,
-       a.assignmentId,
-       a.assignmentName,
-       ag.assignmentPoints
-     FROM
-       students s
-     JOIN enrollments e ON s.studentId = e.studentId
-     JOIN assignments a ON a.courseId = e.courseId
-     LEFT JOIN assignmentgrades ag ON ag.studentId = s.studentId AND ag.assignmentId = a.assignmentId
-     WHERE
-       a.courseId = ?
-     ORDER BY
-       student_name, a.assignmentId;
-   `;
-    const [rows] = await connection.query(query, [courseId]);
-    await connection.end();
-    return rows;
+  const conn = await getConnection();
+  const query = `
+    SELECT
+      s.studentId    AS student_id,
+      CONCAT(s.firstName, ' ', s.lastName) AS student_name,
+      a.assignmentId,
+      a.assignmentName,
+      ag.assignmentPoints,
+      ag.feedback
+    FROM students s
+    JOIN enrollments e
+      ON s.studentId = e.studentId
+    JOIN assignments a
+      ON a.courseId = e.courseId
+    LEFT JOIN assignmentgrades ag
+      ON ag.studentId    = s.studentId
+     AND ag.assignmentId = a.assignmentId
+     AND ag.courseId     = e.courseId
+    WHERE a.courseId = ?
+    ORDER BY student_name, a.assignmentId
+  `;
+  const [rows] = await conn.query(query, [courseId]);
+  await conn.end();
+  return rows;
 }
 
-
-
-//Add new assignmentgrade
-//input: [assignmentgradeid, assignmentid, studentid, assignmentgrade]
-async function addAssignmentGrade(assignmentgrade) {
-    const connection = await getConnection();
-    const {assignmentgradeid, assignmentid, studentid, grade } = assignmentgrade;
-    const [result] = await connection.query(
-        'INSERT INTO assignmentgrades (assignmentgradeid, assignmentid, studentid, assignmentgrade) VALUES (?, ?, ?, ?)',
-        [assignmentgradeid, assignmentid, studentid, grade]
-    );
-    await connection.end();
-    return result.insertId;
+// Create one blank grade per student for a new assignment
+async function addGradesForAssignment(assignmentId, courseId) {
+  const conn = await getConnection();
+  await conn.execute(
+    `INSERT INTO assignmentgrades (assignmentPoints, studentId, assignmentId, courseId)
+       SELECT NULL, studentId, ?, ?
+         FROM enrollments
+        WHERE courseId = ?`,
+    [assignmentId, courseId, courseId]
+  );
+  await conn.end();
 }
 
+// Update an existing grade.
+// Expects: { studentId, courseId, assignmentName, points }
+async function updateAssignmentGrade({ studentId, courseId, assignmentName, points }) {
+  const conn = await getConnection();
 
-//Update assignmentgrade
-async function updateAssignmentGrade(fields) {
-    const connection = await getConnection();
-    const { studentId, courseId, assignmentName, points } = fields;
-    //const { assignmentgradeid, assignmentid, studentid, points } = updatedFields;
+  // 1) Look up assignmentId by (courseId, assignmentName)
+  const [assignRows] = await conn.execute(
+    `SELECT assignmentId
+       FROM assignments
+      WHERE courseId = ? AND assignmentName = ?`,
+    [courseId, assignmentName]
+  );
 
-     // 1. Find the assignmentId based on courseId and assignment name
-     const [assignmentRows] = await connection.execute(
-        `SELECT assignmentId FROM assignments WHERE courseId = ? AND assignmentName = ?`,
-        [courseId, assignmentName]
-    );
+  if (assignRows.length === 0) {
+    await conn.end();
+    throw new Error(`No assignment '${assignmentName}' found for course ${courseId}`);
+  }
+  const assignmentId = assignRows[0].assignmentId;
 
-    console.log('Assignment lookup result:', assignmentRows);
+  // 2) Perform the update
+  await conn.execute(
+    `UPDATE assignmentgrades
+        SET assignmentPoints = ?
+      WHERE studentId    = ?
+        AND assignmentId = ?
+        AND courseId     = ?`,
+    // note: pass JS null if you really intend SQL NULL
+    [points, studentId, assignmentId, courseId]
+  );
 
-    if (assignmentRows.length === 0) {
-        console.error('Assignment not found for the given courseId and assignmentName');
-        await connection.end();
-        return;
-    }
-
-    const assignmentId = assignmentRows[0].assignmentId;
-
-     // 2. Check if grade already exists
-     const [existingGrade] = await connection.execute(
-        `SELECT assignmentGradeId FROM assignmentgrades WHERE studentId = ? AND assignmentId = ?`,
-        [studentId, assignmentId]
-    );
-
-    // 3. Insert or Update grade
-    if (existingGrade.length > 0) {
-        await connection.execute(
-          `UPDATE assignmentgrades SET assignmentPoints = ? WHERE studentId = ? AND assignmentId = ?`,
-          [points, studentId, assignmentId]
-        );
-      } else {
-        await connection.execute(
-          `INSERT INTO assignmentgrades (assignmentPoints, studentId, assignmentId, courseId)
-           VALUES (?, ?, ?, ?)`,
-          [points, studentId, assignmentId, courseId]
-        );
-      }    
-    
-    await connection.end();
+  await conn.end();
 }
 
+// Delete by composite key
+async function deleteAssignmentGrade({ studentId, assignmentId, courseId }) {
+  const conn = await getConnection();
+  await conn.execute(
+    `DELETE FROM assignmentgrades
+      WHERE studentId    = ?
+        AND assignmentId = ?
+        AND courseId     = ?`,
+    [studentId, assignmentId, courseId]
+  );
+  await conn.end();
+}
 
-
-
-//Delete assignmentgrade by ID
-//input: id
-async function deleteAssignmentGrade(id) {
-    const connection = await getConnection();
-    await connection.query('DELETE FROM assignmentgrades WHERE assignmentgradeid = ?', [id]);
-    await connection.end();
+async function addGradesForAssignment(assignmentId, courseId) {
+  const conn = await getConnection();
+  await conn.execute(
+    `INSERT INTO assignmentgrades
+       (assignmentPoints, studentId, assignmentId, courseId)
+     SELECT NULL, studentId, ?, ?
+       FROM enrollments
+      WHERE courseId = ?`,
+    [assignmentId, courseId, courseId]
+  );
+  await conn.end();
 }
 
 module.exports = {
-    getAllAssignmentGrades,
-    getAssignmentGradeById,
-    getAssignmentGradesByCourseId,
-    addAssignmentGrade,
-    updateAssignmentGrade,
-    deleteAssignmentGrade
+  getAllAssignmentGrades,
+  getAssignmentGradesByCourseId,
+  addGradesForAssignment,
+  updateAssignmentGrade,
+  deleteAssignmentGrade,
+  addGradesForAssignment
 };
-

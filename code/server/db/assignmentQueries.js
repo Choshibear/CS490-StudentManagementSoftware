@@ -1,54 +1,91 @@
 const getConnection = require('../db');
 
-// Get all assignments
 async function getAllAssignments() {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM assignments');
-    await connection.end();
-    return rows;
+  const conn = await getConnection();
+  const [rows] = await conn.query('SELECT * FROM assignments');
+  conn.end();
+  return rows;
 }
 
-// Get assignment by ID
-//input: id
 async function getAssignmentById(id) {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM assignments WHERE assignmentId = ?', [id]);
-    await connection.end();
-    return rows[0];
+  const conn = await getConnection();
+  const [rows] = await conn.query(
+    'SELECT * FROM assignments WHERE assignmentId = ?', [id]
+  );
+  conn.end();
+  return rows[0];
 }
 
-// Add new assignment
-//input: [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId]
-async function addAssignment(assignment) {
-    const connection = await getConnection();
-    const { assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId } = assignment;
-    const [result] = await connection.query(
-        'INSERT INTO assignments (assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId]
-    );
-    await connection.end();
-    return result.insertId;
+async function addAssignment(a) {
+  const {
+    assignmentTypeID,
+    assignmentName,
+    description,
+    dueDate,
+    possiblePoints,
+    weight,
+    courseId
+  } = a;
+  const conn = await getConnection();
+  const [result] = await conn.execute(
+    `INSERT INTO assignments
+       (assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId]
+  );
+  conn.end();
+  return result.insertId;
 }
 
-// Update assignment
-//input: id, [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId]
-async function updateAssignment(id, updatedFields) {
-    const connection = await getConnection();
-    const { assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId } = updatedFields;
-    console.log("Updating assignment in DB:", id, updatedFields)
-    await connection.execute(
-        'UPDATE assignments SET assignmentTypeID = ?, assignmentName = ?, description = ?, dueDate = ?, possiblePoints = ?, weight = ?, courseId = ? WHERE assignmentId = ?',
-        [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId, id]
-    );
-    await connection.end();
+async function updateAssignment(id, a) {
+  const {
+    assignmentTypeID,
+    assignmentName,
+    description,
+    dueDate,
+    possiblePoints,
+    weight,
+    courseId
+  } = a;
+  const conn = await getConnection();
+  await conn.execute(
+    `UPDATE assignments SET
+       assignmentTypeID = ?,
+       assignmentName   = ?,
+       description      = ?,
+       dueDate          = ?,
+       possiblePoints   = ?,
+       weight           = ?,
+       courseId         = ?
+     WHERE assignmentId = ?`,
+    [assignmentTypeID, assignmentName, description, dueDate, possiblePoints, weight, courseId, id]
+  );
+  conn.end();
 }
 
-// Delete assignment
-//input: id
 async function deleteAssignment(id) {
-    const connection = await getConnection();
-    await connection.query('DELETE FROM assignments WHERE assignmentId = ?', [id]);
-    await connection.end();
+  const conn = await getConnection();
+  await conn.execute(
+    'DELETE FROM assignments WHERE assignmentId = ?', [id]
+  );
+  conn.end();
 }
 
-module.exports = { getAllAssignments, getAssignmentById, addAssignment, updateAssignment, deleteAssignment };
+// NEW: delete all grades for a given assignment
+async function deleteByAssignmentId(assignmentId) {
+  const conn = await getConnection();
+  await conn.execute(
+    'DELETE FROM assignmentgrades WHERE assignmentId = ?',
+    [assignmentId]
+  );
+  await conn.end();
+}
+
+module.exports = {
+  getAllAssignments,
+  getAssignmentById,
+  addAssignment,
+  updateAssignment,
+  deleteAssignment,
+  deleteByAssignmentId
+};

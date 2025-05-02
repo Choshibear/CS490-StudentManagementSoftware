@@ -1,68 +1,95 @@
 const express = require('express');
-const router = express.Router();
-
+const router  = express.Router();
 const {
   getAllAssignments,
   getAssignmentById,
   addAssignment,
   updateAssignment,
-  deleteAssignment
+  deleteAssignment,
+  deleteByAssignmentId
 } = require('../db/assignmentQueries');
 
+const { addGradesForAssignment } = require('../db/assignmentgradesQueries');
 
-//Get all assignments from the database
+// GET /api/assignments
 router.get('/', async (req, res) => {
   try {
-    const assignments = await getAllAssignments();
-    res.json(assignments);
+    res.json(await getAllAssignments());
   } catch (err) {
-    console.error('Error fetching assignments:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-//Get one assignment by ID
-router.get('/:id', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const assignment = await getAssignmentById(req.params.id);
-    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
-    res.json(assignment);
+    // 1) Create the assignment
+    const id = await addAssignment(req.body);
+
+    // 2) Fetch the new row to get its courseId
+    const newRow = await getAssignmentById(id);
+
+    // 3) Seed assignmentgrades for every enrolled student
+    await addGradesForAssignment(id, newRow.courseId);
+
+    // 4) Return the created assignment
+    res.status(201).json(newRow);
   } catch (err) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Create assignment error:', err);
+    res.status(500).json({ error: 'Failed to create assignment' });
   }
 });
 
-//Create a new assignment
+/*
+
+// POST /api/assignments
 router.post('/', async (req, res) => {
   try {
     const id = await addAssignment(req.body);
-    const assignment = await getAssignmentById(id); // <-- fetch the full new record
-    res.status(201).json({ message: 'Assignment created', id });
+    const newRow = await getAssignmentById(id);
+    res.status(201).json(newRow);
   } catch (err) {
-    console.error('Error adding assignment:', err);
-    res.status(500).json({ error: 'Failed to add assignment' });
+    res.status(500).json({ error: 'Failed to create assignment' });
   }
 });
+*/
 
-//Update an existing assignment
+// PUT /api/assignments/:id
 router.put('/:id', async (req, res) => {
   try {
     await updateAssignment(req.params.id, req.body);
-    const updatedAssignment = await getAssignmentById(req.params.id); // Fetch updated row
-    res.json(updatedAssignment); // Return updated row
+    const updated = await getAssignmentById(req.params.id);
+    res.json(updated);
   } catch (err) {
-    console.error("Update error:", err);
     res.status(500).json({ error: 'Failed to update assignment' });
   }
 });
 
-//Delete an existing assignment
+
+/*
+// DELETE /api/assignments/:id
 router.delete('/:id', async (req, res) => {
   try {
     await deleteAssignment(req.params.id);
-    res.json({ message: 'Assignment deleted' });
+    res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete assignment' });
   }
 });
+*/
+
+// DELETE /api/assignments/:id
+router.delete('/:id', async (req, res) => {
+  const id = req.params.id;
+  try {
+    // 1) remove any grades pointing to this assignment
+    await deleteByAssignmentId(id);
+    // 2) now delete the assignment itself
+    await deleteAssignment(id);
+    res.json({ message: 'Assignment and its grades deleted.' });
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).json({ error: 'Failed to delete assignment' });
+  }
+});
+
 module.exports = router;
