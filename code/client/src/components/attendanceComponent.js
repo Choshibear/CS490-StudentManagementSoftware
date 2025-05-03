@@ -14,12 +14,14 @@ import {
   Typography,
   Box
 } from '@mui/material';
+import emailjs from '@emailjs/browser';
+
 
 // Sample student data - replace with your actual data
 const sampleStudents = [
-  { id: 1, name: 'John Doe', course: 'math101' },
-  { id: 2, name: 'Jane Smith', course: 'eng201' },
-  { id: 3, name: 'Bob Johnson', course: 'math101' }
+  { id: 1, name: 'John Doe', course: 'math101', parentEmail: 'rubymjaber@gmail.com' },
+  { id: 2, name: 'Jane Smith', course: 'eng201', parentEmail: 'parent2@email.com' },
+  { id: 3, name: 'Bob Johnson', course: 'math101', parentEmail: 'parent3@email.com' }
 ];
 
 const AttendanceList = ({ courseId, date }) => {
@@ -32,12 +34,43 @@ const AttendanceList = ({ courseId, date }) => {
     }));
   };
 
-  const handleSave = () => {
-    // Add your save logic here
-    console.log('Saving attendance:', attendance);
-    alert('Attendance saved successfully!');
+  const handleSave = async () => {
+    for (const student of filteredStudents) {
+      const status = attendance[student.id] || 'present';
+  
+      // Save to DB
+      await fetch('http://localhost:5000/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: student.id,
+          date,
+          status
+        })
+      });
+  
+      // Send Email if Absent
+      if (status === 'absent') {
+        console.log(`Sending email to ${student.parentEmail} for ${student.name}`);  // ADD THIS
+      
+        emailjs.send(
+          'service_9l13mc9',
+          'template_mrqn8xj',
+          {
+            to_email: student.parentEmail,
+            subject: `Absence Notification for ${student.name}`,
+            name: "School Attendance System",
+            message: `${student.name} was marked absent on ${date}.`
+          },
+          '6QhI_O5nZGxvlp3xU'
+        );
+      }
+      
+    }
+  
+    alert('Attendance saved and emails sent for absent students!');
   };
-
+  
   const filteredStudents = courseId === 'all' 
     ? sampleStudents 
     : sampleStudents.filter(student => student.course === courseId);

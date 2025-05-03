@@ -38,14 +38,21 @@ async function getAttendanceByDate(date) {
 async function addAttendance(attendance) {
     const connection = await getConnection();
     const { student_id, date, status } = attendance;
-    const [result] = await connection.query(
+  
+    try {
+      const [result] = await connection.query(
         'INSERT INTO attendance (student_id, date, status) VALUES (?, ?, ?)',
         [student_id, date, status]
-    );
-    await connection.end();
-    return result.insertId;
-}
-//update an existing attendance in the database
+      );
+      await connection.end();
+      return result.insertId;
+    } catch (err) {
+      console.error("MYSQL INSERT ERROR:", err);  // This is what I need
+      await connection.end();
+      throw err;
+    }
+  }
+  //update an existing attendance in the database
 //input: attendance[id, student_id, date, status]
 async function updateAttendance(attendance) {
     const connection = await getConnection();
@@ -65,4 +72,13 @@ async function deleteAttendance(id) {
     await connection.query('DELETE FROM attendance WHERE id = ?', [id]);
     await connection.end();
 }
-module.exports = { getAllAttendances };
+module.exports = {
+    getAllAttendances,
+    getAttendanceById,
+    getAttendanceByStudentId,
+    getAttendanceByDate,
+    addAttendance,
+    updateAttendance,
+    deleteAttendance
+  };
+  
