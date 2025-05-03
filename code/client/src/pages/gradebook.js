@@ -3,7 +3,7 @@ import { Typography, Paper } from "@mui/material";
 import Grid from '@mui/material/Grid2';
 import GradesDataGrid from '../components/gradesDataGrid';
 
-export default function Gradebook() {
+function Gradebook() {
     return (
         <Paper elevation={3} style={{ padding: "20px", textAlign: "center" }}>
             <Typography variant="h4">Grade Book</Typography>
@@ -19,4 +19,4 @@ export default function Gradebook() {
     );
 }
 
-//export default Gradebook;
+export default Gradebook;

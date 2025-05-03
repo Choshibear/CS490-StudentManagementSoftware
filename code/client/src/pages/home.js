@@ -32,7 +32,7 @@ function Home() {
           borderRadius: 2
         }}
       >
-        <Typography variant="h5" fontWeight="bold">
+        <Typography variant="h5" fontWeight="bold" color="text.secondary">
           Welcome back, {userName}!
         </Typography>
       </Paper>

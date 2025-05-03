@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -15,6 +15,13 @@ function Login() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  // Redirect to home if already logged in
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   const handleLogin = async () => {
     try {
@@ -37,6 +44,7 @@ function Login() {
       console.error("Error during login:", error);
       setMessage("Server error");
     }
+    
   };
 
   return (

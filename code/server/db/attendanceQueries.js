@@ -16,6 +16,7 @@ async function getAttendanceById(id) {
     await connection.end();
     return rows[0];
 }
+
 //Get one attendance by student ID
 //input: studentId
 async function getAttendanceByStudentId(studentId) {
@@ -24,6 +25,15 @@ async function getAttendanceByStudentId(studentId) {
     await connection.end();
     return rows[0];
 }
+
+//get all attendances for student ID
+async function getAllAttendancesForStudent(studentId) {
+  const connection = await getConnection();
+  const [rows] = await connection.query('SELECT * FROM attendance WHERE student_id = ?', [studentId]);
+  await connection.end();
+  return rows;
+}
+
 //Get one attendance by date
 //input: date
 async function getAttendanceByDate(date) {
@@ -31,6 +41,14 @@ async function getAttendanceByDate(date) {
     const [rows] = await connection.query('SELECT * FROM attendance WHERE date = ?', [date]);
     await connection.end();
     return rows[0];
+}
+
+//get all attendances for date
+async function getAllAttendancesForDate(date) {
+  const connection = await getConnection();
+  const [rows] = await connection.query('SELECT * FROM attendance WHERE date = ?', [date]);
+  await connection.end();
+  return rows;
 }
 
 //add a new attendance to the database
@@ -76,7 +94,9 @@ module.exports = {
     getAllAttendances,
     getAttendanceById,
     getAttendanceByStudentId,
+    getAllAttendancesForStudent,
     getAttendanceByDate,
+    getAllAttendancesForDate,
     addAttendance,
     updateAttendance,
     deleteAttendance

@@ -4,7 +4,7 @@ import Grid from '@mui/material/Grid2';
 import AssignmentDataGrid from '../components/assignmentDataGrid';
 
 
-export default function Coursework() { 
+function Coursework() { 
     return (
       <Paper
         elevation={3}
@@ -29,7 +29,4 @@ export default function Coursework() {
     );
   }
 
-
-
-
-//export default Coursework;
+export default Coursework;

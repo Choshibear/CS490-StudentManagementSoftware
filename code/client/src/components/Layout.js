@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -55,10 +55,11 @@ function Layout({ children }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    setUser(null);
-    navigate("/login");
-  };
+    if (window.confirm("Are you sure you want to log out?")) {
+        localStorage.removeItem("user");
+        navigate("/login");
+    }
+};
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -118,7 +119,7 @@ function Layout({ children }) {
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: "auto" }}>
+        <Box component="main" sx={{ overflow: "auto" }}>
           <Toolbar sx={{ display: "flex", flexDirection: "column", alignItems: "center" }} />
           <List>
             {menuItems.map(({ text, icon, path }) => (
@@ -147,25 +148,21 @@ function Layout({ children }) {
 
             {/* Login/Logout */}
             <ListItem disablePadding sx={{ display: "block" }}>
-              <ListItemButton
-                onClick={user ? handleLogout : () => navigate("/login")}
-                sx={{
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50px",
-                  p: 1,
-                  bgcolor: scheme.panelBg,
-                  "&:hover": { bgcolor: scheme.mainBg }
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>
-                  {user ? <LogoutIcon /> : <LoginIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={user ? "Logout" : "Login"}
-                  primaryTypographyProps={{ color: "inherit" }}
-                />
+                
+                <ListItemButton onClick={handleLogout} 
+                  sx={{
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "50px",
+                    p: 1,
+                    bgcolor: scheme.panelBg,
+                    "&:hover": { bgcolor: scheme.mainBg }
+                  }}>
+                  <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>
+                    <LogoutIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="Logout" primaryTypographyProps={{ color: "inherit" }} />
               </ListItemButton>
             </ListItem>
           </List>
@@ -184,7 +181,7 @@ function Layout({ children }) {
         }}
       >
         <Toolbar />
-        {children}
+        <Outlet />
       </Box>
     </Box>
   );
