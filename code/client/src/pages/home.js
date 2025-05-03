@@ -4,12 +4,12 @@ import { ThemeContext } from "../ThemeContext";
 
 function Home() {
   const { scheme } = useContext(ThemeContext);
-  const [userName, setUserName] = useState("");
+  const [user, setUser] = useState("");
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (userData) {
-      setUserName(`${userData.firstName} ${userData.lastName}`);
+      setUser(userData);
     }
   }, []);
 
@@ -33,7 +33,7 @@ function Home() {
         }}
       >
         <Typography variant="h5" fontWeight="bold" color="text.secondary">
-          Welcome back, {userName}!
+          Welcome to the {user?.role?.toUpperCase()} page, {user?.firstName} {user?.lastName}!
         </Typography>
       </Paper>
 

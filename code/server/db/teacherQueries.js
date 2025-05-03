@@ -1,4 +1,5 @@
 const getConnection = require('../db');
+const { getStudentById } = require('./studentQueries');
 
 // Get all teachers
 async function getAllTeachers() {
@@ -16,6 +17,15 @@ async function getTeacherById(id) {
     await connection.end();
     return rows[0];
 }
+//get teacher by username
+async function getTeacherByUsername(username) {
+    const connection = await getConnection();
+    const [rows] = await connection.query('SELECT * FROM teachers WHERE username = ?', [username]);
+    await connection.end();
+    return rows[0];
+}
+
+
 // Add new teacher
 //input: [firstName, lastName, email, address, city, state, zip, phoneNumber, username, password]
 async function addTeacher(teacher) {
@@ -49,4 +59,4 @@ async function deleteTeacher(id) {
     await connection.end();
 }
 
-module.exports = { getAllTeachers, getTeacherById, addTeacher, updateTeacher, deleteTeacher };
+module.exports = { getAllTeachers, getTeacherById, getTeacherByUsername, addTeacher, updateTeacher, deleteTeacher };

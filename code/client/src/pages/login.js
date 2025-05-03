@@ -15,6 +15,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  
   // Redirect to home if already logged in
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -25,26 +26,26 @@ function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("/api/students/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       });
-
+  
       const data = await response.json();
-
+      console.log(data);
+  
       if (response.ok) {
-        localStorage.setItem("user", JSON.stringify(data.student));
-        setMessage(`Welcome, ${data.student.firstName}!`);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setMessage(`Welcome, ${data.user.firstName}!`);
         setTimeout(() => navigate("/"), 1000);
       } else {
         setMessage(data.message);
       }
     } catch (error) {
-      console.error("Error during login:", error);
+      console.error("Login error:", error);
       setMessage("Server error");
     }
-    
   };
 
   return (

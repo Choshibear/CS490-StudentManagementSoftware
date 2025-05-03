@@ -61,21 +61,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const student = await findStudentByUsername(username);
-    if (!student) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    if (student.password !== password) {
-      return res.status(401).json({ message: "Incorrect password" });
-    }
-    res.json({ message: "Login successful", student });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
 module.exports = router;

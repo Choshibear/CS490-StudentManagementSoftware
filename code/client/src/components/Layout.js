@@ -22,11 +22,11 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import GradeIcon from "@mui/icons-material/Grade";
 import PersonIcon from "@mui/icons-material/Person";
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MailIcon from "@mui/icons-material/Mail";
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 
 import { ThemeContext } from "../ThemeContext";
 
@@ -39,6 +39,7 @@ const menuItems = [
   { text: "Student Record", icon: <PersonIcon />, path: "/studentrecord" },
   { text: "Attendance", icon: <EventAvailableIcon />, path: "/attendance" },
   { text: "Inbox", icon: <MailIcon />, path: "/inbox" },
+  { text: "User Management", icon: <GroupAddIcon />, path: "/usermanagement" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" }
 ];
 
@@ -53,6 +54,24 @@ function Layout({ children }) {
     const userData = JSON.parse(localStorage.getItem("user"));
     if (userData) setUser(userData);
   }, []);
+
+  
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!user) return false;
+    
+    switch(user.role) {
+      case 'student':
+        return ['Home', 'Gradebook', 'Settings'].includes(item.text);
+      case 'parent':
+        return ['Home', 'Gradebook', 'Attendance','Inbox', 'Settings'].includes(item.text);
+      case 'teacher':
+        return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
+      case 'admin':
+        return true; // Admins see all
+      default:
+        return false;
+    }
+  });
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
@@ -122,7 +141,7 @@ function Layout({ children }) {
         <Box component="main" sx={{ overflow: "auto" }}>
           <Toolbar sx={{ display: "flex", flexDirection: "column", alignItems: "center" }} />
           <List>
-            {menuItems.map(({ text, icon, path }) => (
+            {filteredMenuItems.map(({ text, icon, path }) => (
               <ListItem key={text} disablePadding sx={{ display: "block" }}>
                 <ListItemButton
                   component={Link}
@@ -141,6 +160,7 @@ function Layout({ children }) {
                   <ListItemText
                     primary={text}
                     primaryTypographyProps={{ color: "inherit" }}
+                    sx ={{ textAlign: "center" }}
                   />
                 </ListItemButton>
               </ListItem>

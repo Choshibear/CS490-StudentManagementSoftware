@@ -17,6 +17,14 @@ async function getStudentById(id) {
     return rows[0];
 }
 
+// Get student by username
+async function getStudentByUsername(username) {
+    const connection = await getConnection();
+    const [rows] = await connection.query('SELECT * FROM students WHERE username = ?', [username]);
+    await connection.end();
+    return rows[0];
+}
+
 // Add new student
 //input: [firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password]
 async function addStudent(student) {
@@ -50,11 +58,4 @@ async function deleteStudent(id) {
     await connection.end();
 }
 
-async function findStudentByUsername(username) {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM students WHERE username = ?', [username]);
-    await connection.end();
-    return rows[0];
-}
-
-module.exports = { getAllStudents, getStudentById, addStudent, updateStudent, deleteStudent, findStudentByUsername };
+module.exports = { getAllStudents, getStudentById, addStudent, updateStudent, deleteStudent, getStudentByUsername };

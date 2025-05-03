@@ -9,30 +9,47 @@ import Attendance from "./pages/attendance";
 import Login from "./pages/login";
 import Settings from "./pages/settings";
 import Inbox from "./pages/inbox";
+import UserManagement from "./pages/usermanagement";
 import ProtectedRoute from "./ProtectedRoute";
+import UnauthorizedPage from "./pages/unauthorized";
 
 function App() {
     return (
-        <Router>
-            <Routes>
-                {/* Public route */}
-                <Route path="/login" element={<Login />} />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+  
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route element={<Layout />}>
+              <Route path="/usermanagement" element={<UserManagement />} />
+            </Route>
+          </Route>
+  
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher']} />}>
+            <Route element={<Layout />}>
+              <Route path="/coursework" element={<Coursework />} />
+            </Route>
+          </Route>
+  
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent']} />}>
+            <Route element={<Layout />}>
+              <Route path="/studentrecord" element={<StudentRecord />} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/inbox" element={<Inbox />} />
 
-                {/* Protected routes */}
-                <Route element={<ProtectedRoute />}>
-                    <Route element={<Layout />}>
-                        <Route index element={<Home />} />
-                        <Route path="/coursework" element={<Coursework />} />
-                        <Route path="/gradebook" element={<Gradebook />} />
-                        <Route path="/studentrecord" element={<StudentRecord />} />
-                        <Route path="/attendance" element={<Attendance />} />
-                        <Route path="/inbox" element={<Inbox />} />
-                        <Route path="/settings" element={<Settings />} />
-                    </Route>
-                </Route>
-            </Routes>
-        </Router>
+            </Route>
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="/gradebook" element={<Gradebook />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+          </Route>
+        </Routes>
+      </Router>
     );
-}
-
-export default App;
+  }
+  export default App;
