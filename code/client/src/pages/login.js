@@ -37,6 +37,7 @@ function Login() {
   
       if (response.ok) {
         localStorage.setItem("user", JSON.stringify(data.user));
+        window.dispatchEvent(new Event("refresh-unread")); 
         setMessage(`Welcome, ${data.user.firstName}!`);
         setTimeout(() => navigate("/"), 1000);
       } else {

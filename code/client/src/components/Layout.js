@@ -47,27 +47,57 @@ function Layout({ children }) {
   const { scheme } = useContext(ThemeContext);
   const [profileImage] = useState("/logo.png");
   const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
 
-  // Load user info (fallback to localStorage)
+  // Load user info from localStorage
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("user"));
-    if (userData) setUser(userData);
+    if (userData) {
+      setUser(userData);
+      const id = userData.studentId || userData.teacherId || userData.parentId || userData.adminId;
+      const role = userData.studentId ? "students"
+                  : userData.teacherId ? "teachers"
+                  : userData.parentId ? "parents"
+                  : "admins";
+      setUserId(id);
+      setUserRole(role);
+    }
   }, []);
 
-  
+  // Fetch unread message count when userId/role are set
+  useEffect(() => {
+    const fetchUnread = () => {
+      if (userId && userRole) {
+        fetch(`/api/messages/${userRole}/${userId}`)
+          .then(res => res.json())
+          .then(data => {
+            const count = data.filter(msg => msg.unread && msg.receiver_id === userId && msg.receiver_role === userRole).length;
+            setUnreadCount(count);
+          })
+          .catch(err => console.error("Failed to fetch unread messages:", err));
+      }
+    };
+
+    fetchUnread();
+    window.addEventListener("refreshUnread", fetchUnread);
+    return () => window.removeEventListener("refreshUnread", fetchUnread);
+  }, [userId, userRole]);
+
   const filteredMenuItems = menuItems.filter(item => {
     if (!user) return false;
-    
-    switch(user.role) {
+
+    switch (user.role) {
       case 'student':
-        return ['Home', 'Gradebook', 'Settings'].includes(item.text);
+        return ['Home', 'Gradebook', 'Inbox', 'Settings'].includes(item.text);
       case 'parent':
-        return ['Home', 'Gradebook', 'Attendance','Inbox', 'Settings'].includes(item.text);
+        return ['Home', 'Gradebook', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'teacher':
         return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'admin':
-        return true; // Admins see all
+        return true;
       default:
         return false;
     }
@@ -75,16 +105,16 @@ function Layout({ children }) {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
-        localStorage.removeItem("user");
-        navigate("/login");
+      localStorage.removeItem("user");
+      navigate("/login");
     }
-};
+  };
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <CssBaseline />
 
-      {/* Themed Top Bar */}
+      {/* Top Bar */}
       <AppBar
         position="fixed"
         sx={{
@@ -95,24 +125,17 @@ function Layout({ children }) {
         }}
       >
         <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {/* Logo */}
           <IconButton component={Link} to="/" edge="start" color="inherit" sx={{ mr: 2 }}>
             <img src={profileImage} alt="Logo" style={{ width: "100px" }} />
           </IconButton>
 
-          {/* Center Banner */}
-          <Typography
-            variant="h4"
-            component="div"
-            sx={{ position: "fixed", left: "50%", transform: "translateX(-50%)" }}
-          >
+          <Typography variant="h4" sx={{ position: "fixed", left: "50%", transform: "translateX(-50%)" }}>
             Elementary School Management System
           </Typography>
 
-          {/* Notifications & Profile */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 5 }}>
             <IconButton component={Link} to="/inbox" color="inherit">
-              <Badge badgeContent={3} color="error">
+              <Badge badgeContent={unreadCount} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
@@ -123,7 +146,7 @@ function Layout({ children }) {
         </Toolbar>
       </AppBar>
 
-      {/* Themed Sidebar Navigation */}
+      {/* Sidebar */}
       <Drawer
         variant="permanent"
         sx={{
@@ -157,39 +180,36 @@ function Layout({ children }) {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>{icon}</ListItemIcon>
-                  <ListItemText
-                    primary={text}
-                    primaryTypographyProps={{ color: "inherit" }}
-                    sx ={{ textAlign: "center" }}
-                  />
+                  <ListItemText primary={text} primaryTypographyProps={{ color: "inherit" }} sx={{ textAlign: "center" }} />
                 </ListItemButton>
               </ListItem>
             ))}
 
-            {/* Login/Logout */}
+            {/* Logout */}
             <ListItem disablePadding sx={{ display: "block" }}>
-                
-                <ListItemButton onClick={handleLogout} 
-                  sx={{
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "50px",
-                    p: 1,
-                    bgcolor: scheme.panelBg,
-                    "&:hover": { bgcolor: scheme.mainBg }
-                  }}>
-                  <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>
-                    <LogoutIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Logout" primaryTypographyProps={{ color: "inherit" }} />
+              <ListItemButton
+                onClick={handleLogout}
+                sx={{
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50px",
+                  p: 1,
+                  bgcolor: scheme.panelBg,
+                  "&:hover": { bgcolor: scheme.mainBg }
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, color: "inherit" }}>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary="Logout" primaryTypographyProps={{ color: "inherit" }} />
               </ListItemButton>
             </ListItem>
           </List>
         </Box>
       </Drawer>
 
-      {/* Main Content (Themed) */}
+      {/* Main Content */}
       <Box
         component="main"
         sx={{

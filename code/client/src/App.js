@@ -33,14 +33,14 @@ function App() {
             </Route>
           </Route>
   
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route path="/studentrecord" element={<StudentRecord />} />
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/inbox" element={<Inbox />} />
-
             </Route>
           </Route>
+
           <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />
@@ -51,5 +51,5 @@ function App() {
         </Routes>
       </Router>
     );
-  }
-  export default App;
+}
+export default App;

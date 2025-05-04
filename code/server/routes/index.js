@@ -15,5 +15,6 @@ router.use('/courses', require('./courses'));
 router.use('/gradelevels', require('./gradelevels'));
 router.use('/students', require('./students'));
 router.use('/teachers', require('./teachers'));
+router.use('/messages', require('./messages'));
 
 module.exports = router;
