@@ -91,7 +91,7 @@ function Layout({ children }) {
 
     switch (user.role) {
       case 'student':
-        return ['Home', 'Gradebook', 'Inbox', 'Settings'].includes(item.text);
+        return ['Home','Coursework', 'Gradebook', 'Inbox', 'Settings'].includes(item.text);
       case 'parent':
         return ['Home', 'Gradebook', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'teacher':

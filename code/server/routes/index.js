@@ -16,5 +16,6 @@ router.use('/gradelevels', require('./gradelevels'));
 router.use('/students', require('./students'));
 router.use('/teachers', require('./teachers'));
 router.use('/messages', require('./messages'));
+router.use('/parent_student', require('./parent_student'));
 
 module.exports = router;

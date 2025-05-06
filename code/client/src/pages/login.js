@@ -33,18 +33,18 @@ function Login() {
       });
   
       const data = await response.json();
-      console.log(data);
   
       if (response.ok) {
+        // Store both user and token
+        localStorage.setItem("authToken", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        window.dispatchEvent(new Event("refresh-unread")); 
+        
         setMessage(`Welcome, ${data.user.firstName}!`);
         setTimeout(() => navigate("/"), 1000);
       } else {
-        setMessage(data.message);
+        setMessage(data.message || "Login failed");
       }
     } catch (error) {
-      console.error("Login error:", error);
       setMessage("Server error");
     }
   };

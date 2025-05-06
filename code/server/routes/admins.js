@@ -4,8 +4,8 @@ const {
     getAllAdmins,
     getAdminById,
     addAdmin,
-    updateAdmin,
-    deleteAdmin
+    updateAdminById,
+    deleteAdminById
 } = require('../db/adminQueries');
 
 //Get all admins from the database
@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
 //Update an existing admin
 router.put('/:id', async (req, res) => {
     try {
-        await updateAdmin(req.params.id, req.body);
+        await updateAdminById(req.params.id, req.body);
         res.json({ message: 'Admin updated' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to update Admin' });
@@ -53,7 +53,7 @@ router.put('/:id', async (req, res) => {
 //Delete an existing admin
 router.delete('/:id', async (req, res) => {
     try {
-        await deleteAdmin(req.params.id);
+        await deleteAdminById(req.params.id);
         res.json({ message: 'Admin deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete Admin' });
