@@ -42,7 +42,7 @@ function App() {
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/gradebook" element={<Gradebook />} />
