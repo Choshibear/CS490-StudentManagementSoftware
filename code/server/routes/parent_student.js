@@ -1,11 +1,11 @@
-const express = require('express');
+module.exports = router;const express = require('express');
 const router = express.Router();
 
 const {
   linkParentStudent,
   unlinkParentStudent,
   getAllParentStudents
-} = require('../db/parentStudentQueries');
+} = require('../db/parentstudentQueries');
 
 //get all parent_student relationships
 router.get('/', async (req, res) => {

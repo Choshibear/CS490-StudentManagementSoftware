@@ -1,4 +1,3 @@
-//FIX QUERIES
 const getConnection = require('../db');
 
 // Get all parents
@@ -86,4 +85,13 @@ async function deleteParent(id) {
     await connection.end();
 }
 
-module.exports = { getAllParents, getParentById, getParentsByStudentId, getParentByUsername, getChildrenByParentId, addParent, updateParent, deleteParent };
+module.exports = { 
+    getAllParents, 
+    getParentById, 
+    getParentsByStudentId, 
+    getParentByUsername, 
+    getChildrenByParentId, 
+    addParent, 
+    updateParent, 
+    deleteParent
+};

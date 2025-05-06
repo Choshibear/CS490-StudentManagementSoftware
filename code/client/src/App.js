@@ -34,11 +34,11 @@ function App() {
             </Route>
           </Route>
   
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent']} />}>
             <Route element={<Layout />}>
               <Route path="/studentrecord" element={<StudentRecord />} />
               <Route path="/attendance" element={<Attendance />} />
-              <Route path="/inbox" element={<Inbox />} />
+              
             </Route>
           </Route>
 
@@ -46,6 +46,7 @@ function App() {
             <Route element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/gradebook" element={<Gradebook />} />
+              <Route path="/inbox" element={<Inbox />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
