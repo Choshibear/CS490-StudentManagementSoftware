@@ -37,7 +37,7 @@ import React, { useEffect, useState } from "react";
    );
  };
  
- const GradesDataGrid = () => {
+ const StudentGradesDataGrid = () => {
    const [gradesData, setGradesData] = useState([]);
    const [courses, setCourses] = useState([]);
    const [selectedCourseId, setSelectedCourseId] = useState(''); // Default courseId = 1
@@ -145,6 +145,28 @@ import React, { useEffect, useState } from "react";
    };
  
    return (
+     <Box>
+    <GridToolbarContainer sx={toolbarStyles}>
+    <FormControl size="small" sx={{ minWidth: 200 }}>
+      <InputLabel>Filter by Course</InputLabel>
+      <Select
+        value={selectedCourseId ?? ''}
+        label="Filter by Course"
+        onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+        //displayEmpty
+      >
+        <MenuItem value="">
+        <em>All Courses</em>
+        </MenuItem>
+        {courses.map((course) => (
+          <MenuItem key={course.courseId} value={course.courseId}>
+            {course.courseName}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  </GridToolbarContainer>
+     
      <Box sx={containerStyles}>
        <DataGrid
          rows={gradesData}
@@ -173,7 +195,8 @@ import React, { useEffect, useState } from "react";
          }}
          disableColumnMenu
        />
-     </Box>
+       </Box>
+       </Box>
    );
 };
  
@@ -194,4 +217,4 @@ const containerStyles = {
   '& .textPrimary': { color: 'text.primary' },
 };
  
- export default GradesDataGrid;
+ export default StudentGradesDataGrid;

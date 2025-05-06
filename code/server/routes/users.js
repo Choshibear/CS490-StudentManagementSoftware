@@ -12,10 +12,11 @@ const {
 const {
   getAllStudents
 } = require('../db/studentQueries');
-const { roleAuth } = require('../middleware/authMiddleware');
+
+const { authenticate, roleAuth } = require('../middleware/authMiddleware');
 
 // Get all users (Admin only)
-router.get('/', roleAuth(['admin']), async (req, res) => {
+router.get('/', authenticate, roleAuth(['admin']), async (req, res) => {
   try {
     const [admins, teachers, parents, students] = await Promise.all([
       getAllAdmins(),
@@ -28,25 +29,25 @@ router.get('/', roleAuth(['admin']), async (req, res) => {
       ...admins.map(a => ({ 
         ...a, 
         role: 'admin',
-        id: a.adminId,
+        id: `admin_${a.adminId}`,
         displayName: `${a.firstName} ${a.lastName}`
       })),
       ...teachers.map(t => ({
         ...t,
         role: 'teacher',
-        id: t.teacherId,
+        id: `teacher_${t.teacherId}`,
         displayName: `${t.firstName} ${t.lastName}`
       })),
       ...parents.map(p => ({
         ...p,
         role: 'parent',
-        id: p.parentId,
+        id: `parent_${p.parentId}`,
         displayName: `${p.firstName} ${p.lastName}`
       })),
       ...students.map(s => ({
         ...s,
         role: 'student',
-        id: s.studentId,
+        id: `student_${s.studentId}`,
         displayName: `${s.firstName} ${s.lastName}`
       }))
     ];

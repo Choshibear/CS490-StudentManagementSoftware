@@ -34,6 +34,7 @@ function Home() {
       >
         <Typography variant="h5" fontWeight="bold" color="text.secondary">
           Welcome to the {user?.role?.toUpperCase()} page, {user?.firstName} {user?.lastName}!
+          {console.log(user)}
         </Typography>
       </Paper>
 

@@ -360,6 +360,15 @@ export default function AssignmentDataGrid() {
           columns={columns}
           getRowId={r => r.assignmentId}
           disableSelectionOnClick
+          initialState={{
+            pagination: {
+              paginationModel: {
+                pageSize: 10,
+                page: 0,
+              },
+            },
+          }} // Default rows per page
+           pageSizeOptions={[10, 30, 50, 100]} // Dropdown choices
         />
       </Box>
     </Box>

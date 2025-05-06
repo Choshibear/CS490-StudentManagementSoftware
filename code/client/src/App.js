@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/home";
 import Coursework from "./pages/coursework";
 import Gradebook from "./pages/gradebook";
+import StudentGradebook from "./pages/studentgradebook";
 import StudentRecord from "./pages/studentrecord";
 import Attendance from "./pages/attendance";
 import Login from "./pages/login";
@@ -27,7 +28,7 @@ function App() {
             </Route>
           </Route>
   
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher',  'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route path="/coursework" element={<Coursework />} />
             </Route>
@@ -41,13 +42,22 @@ function App() {
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher']} />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="/gradebook" element={<Gradebook />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="/studentgradebook" element={<Gradebook />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+          </Route>
+
         </Routes>
       </Router>
     );
