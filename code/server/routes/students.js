@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   getAllStudents,
   getStudentById,
@@ -44,10 +45,12 @@ router.post('/', async (req, res) => {
 //Update an existing student
 router.put('/:id', async (req, res) => {
   try {
+    console.log(`PUT /students/${req.params.id} body:`, req.body);
     await updateStudent(req.params.id, req.body);
     res.json({ message: 'Student updated' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update student' });
+    console.error(`PUT /students/${req.params.id} error:`, err);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -66,13 +66,13 @@ async function addParent(parent) {
 }
 
 //update parent by ID
-//input: id, [firstName, lastName, email, address, city, state, zip, phoneNumber, username, password]
+//input: id, [firstName, lastName, email, address, city, state, zip, phoneNumberd]
 async function updateParent(id, updatedFields) {
     const connection = await getConnection();
-    const { firstName, lastName, email, address, city, state, zip, phoneNumber, username, password } = updatedFields;
+    const { firstName, lastName, email, address, city, state, zip, phoneNumber } = updatedFields;
     await connection.query(
-        'UPDATE parents SET firstName = ?, lastName = ?, email = ?, address = ?, city = ?, state = ?, zip = ?, phoneNumber = ?, username = ?, password = ? WHERE parentId = ?',
-        [firstName, lastName, email, address, city, state, zip, phoneNumber, username, password, id]
+        'UPDATE parents SET firstName = ?, lastName = ?, email = ?, address = ?, city = ?, state = ?, zip = ?, phoneNumber = ? WHERE parentId = ?',
+        [firstName, lastName, email, address, city, state, zip, phoneNumber, id]
     );
     await connection.end();
 }

@@ -99,7 +99,7 @@ function Layout({ children }) {
       case 'teacher':
         return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'admin':
-        return true;
+        return ['Home',  'Student Record', 'Attendance', 'Inbox', 'User Management','Settings'].includes(item.text);
       default:
         return false;
     }

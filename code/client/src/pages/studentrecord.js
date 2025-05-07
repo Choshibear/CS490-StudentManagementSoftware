@@ -16,19 +16,23 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle
+  DialogTitle,
+  TextField,
+  Grid
 } from "@mui/material";
 import { Add, Edit, Delete } from "@mui/icons-material";
 import { ThemeContext } from "../ThemeContext";
 
-// Sorting utilities
+const api = axios.create({ baseURL: "http://localhost:5000/api" });
+
+// Sorting helpers
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) return -1;
   if (b[orderBy] > a[orderBy]) return 1;
   return 0;
 }
 function getComparator(order, orderBy) {
-  return order === 'desc'
+  return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
@@ -44,6 +48,8 @@ function stableSort(array, comparator) {
 
 export default function StudentRecord() {
   const { scheme } = useContext(ThemeContext);
+
+  // Data state
   const [user, setUser] = useState(null);
   const [students, setStudents] = useState([]);
   const [parents, setParents] = useState([]);
@@ -52,168 +58,407 @@ export default function StudentRecord() {
   const [coursesList, setCoursesList] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [courseGrades, setCourseGrades] = useState([]);
+
+  // UI state
   const [openRow, setOpenRow] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [order, setOrder] = useState('asc');
-  const [orderBy, setOrderBy] = useState('studentId');
+  const [order, setOrder] = useState("asc");
+  const [orderBy, setOrderBy] = useState("studentId");
 
-  // Load user and all data
+  // Dialog state
+  const [openAdd, setOpenAdd] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // Form state
+  const studentTemplate = {
+    firstName: "",
+    lastName: "",
+    dob: "",
+    email: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    phoneNumber: "",
+    gradeLevelId: "",
+    studentNotes: ""
+  };
+  const [formStudent, setFormStudent] = useState(studentTemplate);
+  const [formParents, setFormParents] = useState({});
+
+  // Initial data fetch
   useEffect(() => {
-    const u = JSON.parse(localStorage.getItem('user'));
+    const u = JSON.parse(localStorage.getItem("user"));
     setUser(u);
+
     Promise.all([
-      axios.get("http://localhost:5000/api/students"),
-      axios.get("http://localhost:5000/api/parent_student"),
-      axios.get("http://localhost:5000/api/parents"),
-      axios.get("http://localhost:5000/api/enrollments"),
-      axios.get("http://localhost:5000/api/courses"),
-      axios.get("http://localhost:5000/api/teachers"),
-      axios.get("http://localhost:5000/api/coursegrades")
-    ]).then(([sRes, plRes, pRes, eRes, cRes, tRes, cgRes]) => {
-      let allStudents = sRes.data;
-      const allEnroll = eRes.data;
-      const allCourses = cRes.data;
-      // Role-based student filter
-      if (u.role === 'teacher') {
-        // find courses taught by this teacher
-        const myCourseIds = new Set(
-          allCourses.filter(c => c.teacherId === u.teacherId).map(c => c.courseId)
-        );
-        // find students enrolled in those courses
-        const studentIds = new Set(
-          allEnroll.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
-        );
-        allStudents = allStudents.filter(s => studentIds.has(s.studentId));
-      }
-      // if admin or other, no filter
-      setStudents(allStudents);
-      setParentLinks(plRes.data);
-      setParents(pRes.data);
-      setEnrollments(allEnroll);
-      setCoursesList(allCourses);
-      setTeachers(tRes.data);
-      setCourseGrades(cgRes.data);
-    }).catch(err => console.error(err));
+      api.get("/students"),
+      api.get("/parent_student"),
+      api.get("/parents"),
+      api.get("/enrollments"),
+      api.get("/courses"),
+      api.get("/teachers"),
+      api.get("/coursegrades")
+    ])
+      .then(([sRes, plRes, pRes, eRes, cRes, tRes, cgRes]) => {
+        let allStudents = sRes.data;
+        const allEnroll = eRes.data;
+        const allCourses = cRes.data;
+
+        // Teacher sees only their students
+        if (u.role === "teacher") {
+          const myCourseIds = new Set(
+            allCourses.filter(c => c.teacherId === u.teacherId).map(c => c.courseId)
+          );
+          const studentIds = new Set(
+            allEnroll.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
+          );
+          allStudents = allStudents.filter(s => studentIds.has(s.studentId));
+        }
+
+        setStudents(allStudents);
+        setParentLinks(plRes.data);
+        setParents(pRes.data);
+        setEnrollments(allEnroll);
+        setCoursesList(cRes.data);
+        setTeachers(tRes.data);
+        setCourseGrades(cgRes.data);
+      })
+      .catch(console.error);
   }, []);
 
-  const handleRowClick = (student) => {
-    const id = student.studentId;
-    setOpenRow(prev => prev === id ? null : id);
-    setSelectedStudent(prev => prev && prev.studentId === id ? null : student);
+  // Refresh helper
+  const refreshStudents = async () => {
+    const res = await api.get("/students");
+    let list = res.data;
+    if (user.role === "teacher") {
+      const myCourseIds = new Set(
+        coursesList.filter(c => c.teacherId === user.teacherId).map(c => c.courseId)
+      );
+      const studentIds = new Set(
+        enrollments.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
+      );
+      list = list.filter(s => studentIds.has(s.studentId));
+    }
+    setStudents(list);
   };
 
-  const handleDelete = async () => {
-    if (!selectedStudent) return;
+  // Sorting handlers
+  const handleRequestSort = prop => {
+    const isAsc = orderBy === prop && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(prop);
+  };
+  const sortedStudents = stableSort(students, getComparator(order, orderBy));
+
+  // Expand/collapse and fetch fresh
+  const handleRowClick = async s => {
+    const id = s.studentId;
+    const opening = openRow !== id;
+    if (opening) {
+      try {
+        const { data: fresh } = await api.get(`/students/${id}`);
+        setStudents(prev =>
+          prev.map(st => (st.studentId === id ? { ...st, ...fresh } : st))
+        );
+        setSelectedStudent({ ...s, ...fresh });
+      } catch {
+        setSelectedStudent(s);
+      }
+    } else {
+      setSelectedStudent(null);
+    }
+    setOpenRow(opening ? id : null);
+  };
+
+  // Add student
+  const handleAddOpen = () => {
+    setFormStudent(studentTemplate);
+    setOpenAdd(true);
+  };
+  const handleAddClose = () => setOpenAdd(false);
+  const handleAddSave = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/students/${selectedStudent.studentId}`);
+      await api.post("/students", formStudent);
+      await refreshStudents();
+      setOpenAdd(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Edit student & parents
+  const handleEditOpen = () => {
+    if (!selectedStudent) return;
+    setFormStudent({
+      firstName: selectedStudent.firstName,
+      lastName: selectedStudent.lastName,
+      dob: selectedStudent.dob,
+      email: selectedStudent.email,
+      address: selectedStudent.address,
+      city: selectedStudent.city,
+      state: selectedStudent.state,
+      zip: selectedStudent.zip,
+      phoneNumber: selectedStudent.phoneNumber,
+      gradeLevelId: selectedStudent.gradeLevelId,
+      studentNotes: selectedStudent.studentNotes || ""
+    });
+    const seed = {};
+    parentLinks
+      .filter(pl => pl.studentId === selectedStudent.studentId)
+      .forEach(pl => {
+        const p = parents.find(x => x.parentId === pl.parentId) || {};
+        seed[p.parentId] = {
+          firstName: p.firstName || "",
+          lastName: p.lastName || "",
+          email: p.email || "",
+          phoneNumber: p.phoneNumber || "",
+          address: p.address || "",
+          city: p.city || "",
+          state: p.state || "",
+          zip: p.zip || ""
+        };
+      });
+    setFormParents(seed);
+    setOpenEdit(true);
+  };
+  const handleEditClose = () => setOpenEdit(false);
+
+  const handleEditSave = async () => {
+    try {
+      await api.put(`/students/${selectedStudent.studentId}`, formStudent);
+      const links = parentLinks.filter(
+        pl => pl.studentId === selectedStudent.studentId
+      );
+      await Promise.all(
+        links.map(pl =>
+          api.put(`/parents/${pl.parentId}`, formParents[pl.parentId])
+        )
+      );
+      await refreshStudents();
+      setOpenEdit(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Delete student
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/students/${selectedStudent.studentId}`);
       setDeleteConfirm(false);
       setSelectedStudent(null);
-      // refresh students
-      const res = await axios.get("http://localhost:5000/api/students");
-      let updated = res.data;
-      if (user.role === 'teacher') {
-        // reapply teacher filter
-        const myCourseIds = new Set(
-          coursesList.filter(c => c.teacherId === user.teacherId).map(c => c.courseId)
-        );
-        const studentIds = new Set(
-          enrollments.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
-        );
-        updated = updated.filter(s => studentIds.has(s.studentId));
-      }
-      setStudents(updated);
-    } catch(err) { console.error(err); }
+      await refreshStudents();
+    } catch (e) {
+      console.error(e);
+    }
   };
-
-  const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
-  };
-
-  const sortedStudents = stableSort(students, getComparator(order, orderBy));
 
   return (
     <Box sx={{ bgcolor: scheme.mainBg, color: scheme.text, p: 3 }}>
+      {/* Top bar */}
+      <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          disabled={user?.role !== "admin"}
+          onClick={handleAddOpen}
+        >
+          Add Student
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<Edit />}
+          disabled={user?.role !== "admin" || !selectedStudent}
+          onClick={handleEditOpen}
+        >
+          Edit Student & Parents
+        </Button>
+        <Button
+          variant="contained"
+          startIcon={<Delete />}
+          disabled={user?.role !== "admin" || !selectedStudent}
+          onClick={() => setDeleteConfirm(true)}
+        >
+          Delete Student
+        </Button>
+      </Box>
+
+      {/* Students table */}
       <TableContainer component={Paper} sx={{ backgroundColor: scheme.panelBg }}>
         <Table>
           <TableHead>
             <TableRow>
-              {['studentId','firstName','lastName','gradeLevelId'].map((field, idx) => (
-                <TableCell key={field} sx={{ color: scheme.text }} sortDirection={orderBy === field ? order : false}>
+              {[
+                "studentId",
+                "firstName",
+                "lastName",
+                "gradeLevelId",
+                "studentGpa"
+              ].map((f, i) => (
+                <TableCell
+                  key={f}
+                  sx={{ color: scheme.text }}
+                  sortDirection={orderBy === f ? order : false}
+                >
                   <TableSortLabel
-                    active={orderBy === field}
-                    direction={orderBy === field ? order : 'asc'}
-                    onClick={() => handleRequestSort(field)}
-                  >{['ID','First Name','Last Name','Grade Level'][idx]}</TableSortLabel>
+                    active={orderBy === f}
+                    direction={orderBy === f ? order : "asc"}
+                    onClick={() => handleRequestSort(f)}
+                  >
+                    {["ID", "First Name", "Last Name", "Grade Level", "GPA"][i]}
+                  </TableSortLabel>
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedStudents.map((s) => {
-              const linkedParents = parentLinks
-                .filter(pl => pl.studentId === s.studentId)
-                .map(pl => parents.find(p => p.parentId === pl.parentId))
-                .filter(Boolean);
-              const studentEnrollments = enrollments.filter(e => e.studentId === s.studentId);
+            {sortedStudents.map(s => {
+              const linkedPL = parentLinks.filter(
+                pl => pl.studentId === s.studentId
+              );
+              const studentEnrollments = enrollments.filter(
+                e => e.studentId === s.studentId
+              );
+
               return (
                 <React.Fragment key={s.studentId}>
-                  <TableRow hover onClick={() => handleRowClick(s)} sx={{ cursor: 'pointer' }}>
-                    <TableCell sx={{ color: scheme.text }}>{s.studentId}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{s.firstName}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{s.lastName}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{s.gradeLevelId}</TableCell>
+                  <TableRow
+                    hover
+                    onClick={() => handleRowClick(s)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    <TableCell>{s.studentId}</TableCell>
+                    <TableCell>{s.firstName}</TableCell>
+                    <TableCell>{s.lastName}</TableCell>
+                    <TableCell>{s.gradeLevelId}</TableCell>
+                    <TableCell>
+                      {!isNaN(s.studentGpa)
+                        ? parseFloat(s.studentGpa).toFixed(2)
+                        : ""}
+                    </TableCell>
                   </TableRow>
+
                   <TableRow>
-                    <TableCell colSpan={4} sx={{ p: 0 }}>
-                      <Collapse in={openRow === s.studentId} timeout="auto" unmountOnExit>
-                        <Box sx={{ display: 'flex', m: 2, color: scheme.text, gap: 4 }}>
-                          {/* Left: Student & Parent Info */}
+                    <TableCell colSpan={5} sx={{ p: 0 }}>
+                      <Collapse
+                        in={openRow === s.studentId}
+                        timeout="auto"
+                        unmountOnExit
+                      >
+                        <Box sx={{ display: "flex", m: 2, gap: 4 }}>
+                          {/* LEFT COLUMN */}
                           <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1 }}><b>Student Contact</b></Typography>
-                            <Typography><b>DOB:</b> {new Date(s.dob).toLocaleDateString()}</Typography>
-                            <Typography><b>Email:</b> {s.email}</Typography>
-                            <Typography><b>Address:</b> {s.address}, {s.city}, {s.state} {s.zip}</Typography>
-                            <Typography><b>Phone:</b> {s.phoneNumber}</Typography>
-                            {linkedParents.length > 0 && (
-                              <Box sx={{ mt: 2 }}>
-                                <Typography variant="subtitle1"><b>Parent Contact</b></Typography>
-                                {linkedParents.map(p => (
-                                  <Box key={p.parentId} sx={{ mb: 1 }}>
-                                    <Typography><b>Name:</b> {p.firstName} {p.lastName}</Typography>
-                                    <Typography><b>Email:</b> {p.email}</Typography>
-                                    <Typography><b>Phone:</b> {p.phoneNumber}</Typography>
-                                    <Typography><b>Address:</b> {p.address}, {p.city}, {p.state} {p.zip}</Typography>
-                                  </Box>
-                                ))}
-                              </Box>
-                            )}
+                            <Typography variant="subtitle1">
+                              <b>Student Contact</b>
+                            </Typography>
+                            <Box sx={{ mb: 2, backgroundColor: scheme.mainBg }}>
+                            <Typography>
+                              <b>DOB:</b> {new Date(s.dob).toLocaleDateString()}
+                            </Typography>
+                            <Typography>
+                              <b>Email:</b> {s.email}
+                            </Typography>
+                            <Typography>
+                              <b>Address:</b> {s.address}, {s.city}, {s.state}{" "}
+                              {s.zip}
+                            </Typography>
+                            <Typography>
+                              <b>Phone:</b> {s.phoneNumber}
+                            </Typography>
+                            </Box>
+
+                            <Typography variant="subtitle1" sx={{ mt: 3 }}>
+                              <b>Parent Contact</b>
+                            </Typography>
+                            {linkedPL.map(pl => {
+                              const p =
+                                parents.find(x => x.parentId === pl.parentId) ||
+                                {};
+                              return (
+                                <Box key={pl.parentId} sx={{ mb: 2 }}>
+                                  <Typography>
+                                    <b>Name:</b> {p.firstName} {p.lastName}
+                                  </Typography>
+                                  <Typography>
+                                    <b>Email:</b> {p.email}
+                                  </Typography>
+                                  <Typography>
+                                    <b>Phone:</b> {p.phoneNumber}
+                                  </Typography>
+                                  <Typography>
+                                    <b>Address:</b> {p.address}, {p.city},{" "}
+                                    {p.state} {p.zip}
+                                  </Typography>
+                                </Box>
+                              );
+                            })}
+
+                            {/* Student Notes moved under Parent */}
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="subtitle2">
+                                <b>Student Notes</b>
+                              </Typography>
+                              <Typography>{s.studentNotes || "—"}</Typography>
+                            </Box>
                           </Box>
-                          {/* Right: Enrolled Courses Table */}
+
+                          {/* RIGHT COLUMN */}
                           <Box sx={{ flex: 1 }}>
                             {studentEnrollments.length > 0 && (
                               <>
-                                <Typography variant="subtitle1" sx={{ mb: 1 }}><b>Enrolled Courses</b></Typography>
+                                <Typography
+                                  variant="subtitle1"
+                                  sx={{ mb: 1 }}
+                                >
+                                  <b>Enrolled Courses</b>
+                                </Typography>
                                 <Table size="small" sx={{ backgroundColor: scheme.mainBg }}>
                                   <TableHead>
                                     <TableRow>
-                                      <TableCell sx={{ fontWeight: 'bold' }}>Course</TableCell>
-                                      <TableCell sx={{ fontWeight: 'bold' }}>Teacher</TableCell>
-                                      <TableCell sx={{ fontWeight: 'bold' }}>Grade</TableCell>
+                                      <TableCell>
+                                        <b>Course</b>
+                                      </TableCell>
+                                      <TableCell>
+                                        <b>Teacher</b>
+                                      </TableCell>
+                                      <TableCell>
+                                        <b>Grade</b>
+                                      </TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
                                     {studentEnrollments.map(e => {
-                                      const course = coursesList.find(c => c.courseId === e.courseId) || {};
-                                      const teacher = teachers.find(t => t.teacherId === course.teacherId) || {};
-                                      const cg = courseGrades.find(cg => cg.studentId === s.studentId && cg.courseId === e.courseId) || {};
+                                      const course =
+                                        coursesList.find(
+                                          c => c.courseId === e.courseId
+                                        ) || {};
+                                      const teacher =
+                                        teachers.find(
+                                          t =>
+                                            t.teacherId ===
+                                            course.teacherId
+                                        ) || {};
+                                      const cg =
+                                        courseGrades.find(
+                                          cg =>
+                                            cg.studentId === s.studentId &&
+                                            cg.courseId === e.courseId
+                                        ) || {};
                                       return (
                                         <TableRow key={e.courseId}>
-                                          <TableCell>{course.courseName}</TableCell>
-                                          <TableCell>{teacher.firstName} {teacher.lastName}</TableCell>
-                                          <TableCell>{cg.courseGrade} ({cg.courseAvg}%)</TableCell>
+                                          <TableCell>
+                                            {course.courseName}
+                                          </TableCell>
+                                          <TableCell>
+                                            {teacher.firstName}{" "}
+                                            {teacher.lastName}
+                                          </TableCell>
+                                          <TableCell>
+                                            {cg.courseGrade} ({cg.courseAvg}
+                                            %)
+                                          </TableCell>
                                         </TableRow>
                                       );
                                     })}
@@ -233,24 +478,126 @@ export default function StudentRecord() {
         </Table>
       </TableContainer>
 
-      <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-        <Button variant="contained" startIcon={<Add />} disabled>
-          Add
-        </Button>
-        <Button variant="contained" startIcon={<Edit />} disabled={!selectedStudent}>
-          Edit
-        </Button>
-        <Button variant="contained" startIcon={<Delete />} onClick={() => setDeleteConfirm(true)} disabled={!selectedStudent}>
-          Delete
-        </Button>
-      </Box>
-
-      <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)}>
+      {/* Delete confirmation */}
+      <Dialog
+        open={deleteConfirm}
+        onClose={() => setDeleteConfirm(false)}
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>Delete this student?</DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteConfirm(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Student Dialog */}
+      <Dialog open={openAdd} onClose={handleAddClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Student</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {Object.keys(studentTemplate).map(key => (
+              <Grid item xs={12} sm={6} key={key}>
+                <TextField
+                  label={key}
+                  type={key === "dob" ? "date" : "text"}
+                  value={formStudent[key]}
+                  onChange={e =>
+                    setFormStudent(f => ({ ...f, [key]: e.target.value }))
+                  }
+                  fullWidth
+                  InputLabelProps={
+                    key === "dob" ? { shrink: true } : undefined
+                  }
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAddClose}>Cancel</Button>
+          <Button onClick={handleAddSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Student & Parents Dialog */}
+      <Dialog open={openEdit} onClose={handleEditClose} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Student & Parent Info</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle2" sx={{ mt: 1, mb: 1 }}>
+            <b>Student Details</b>
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.keys(studentTemplate).map(key => (
+              <Grid item xs={12} sm={6} key={key}>
+                <TextField
+                  label={key}
+                  type={key === "dob" ? "date" : "text"}
+                  value={formStudent[key]}
+                  onChange={e =>
+                    setFormStudent(f => ({ ...f, [key]: e.target.value }))
+                  }
+                  fullWidth
+                  InputLabelProps={
+                    key === "dob" ? { shrink: true } : undefined
+                  }
+                />
+              </Grid>
+            ))}
+          </Grid>
+
+          <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
+            <b>Parent Contact(s)</b>
+          </Typography>
+          {selectedStudent &&
+            parentLinks
+              .filter(pl => pl.studentId === selectedStudent.studentId)
+              .map(pl => {
+                const pId = pl.parentId;
+                const pData = formParents[pId] || {};
+                return (
+                  <Box
+                    key={pId}
+                    sx={{ border: 1, borderColor: "divider", p: 2, mb: 2 }}
+                  >
+                    <Typography variant="subtitle2">
+                      Parent ID: {pId}
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {[
+                        "firstName",
+                        "lastName",
+                        "email",
+                        "phoneNumber",
+                        "address",
+                        "city",
+                        "state",
+                        "zip"
+                      ].map(field => (
+                        <Grid item xs={12} sm={6} key={field}>
+                          <TextField
+                            label={field}
+                            value={pData[field] || ""}
+                            onChange={e =>
+                              setFormParents(fp => ({
+                                ...fp,
+                                [pId]: { ...fp[pId], [field]: e.target.value }
+                              }))
+                            }
+                            fullWidth
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                );
+              })}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose}>Cancel</Button>
+          <Button onClick={handleEditSave}>Save All</Button>
         </DialogActions>
       </Dialog>
     </Box>

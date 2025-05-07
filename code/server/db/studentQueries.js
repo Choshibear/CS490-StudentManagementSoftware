@@ -1,61 +1,148 @@
+// server/db/studentQueries.js
+
 const getConnection = require('../db');
 
-// Get all students
+// Fetch all students
 async function getAllStudents() {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM students');
-    await connection.end();
-    return rows;
+  const connection = await getConnection();
+  const [rows] = await connection.query('SELECT * FROM students');
+  await connection.end();
+  return rows;
 }
 
-// Get one student by ID
-//input: studentId
+// Fetch one student by ID
 async function getStudentById(id) {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM students WHERE studentId = ?', [id]);
-    await connection.end();
-    return rows[0];
+  const connection = await getConnection();
+  const [rows] = await connection.query(
+    'SELECT * FROM students WHERE studentId = ?',
+    [id]
+  );
+  await connection.end();
+  return rows[0];
 }
 
-// Get student by username
+// Fetch one student by username (for login)
 async function getStudentByUsername(username) {
-    const connection = await getConnection();
-    const [rows] = await connection.query('SELECT * FROM students WHERE username = ?', [username]);
-    await connection.end();
-    return rows[0];
+  const connection = await getConnection();
+  const [rows] = await connection.query(
+    'SELECT * FROM students WHERE username = ?',
+    [username]
+  );
+  await connection.end();
+  return rows[0];
 }
 
-// Add new student
-//input: [firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password]
+// Add a new student (including studentNotes)
 async function addStudent(student) {
-    const connection = await getConnection();
-    const { firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId } = student;
-    const [result] = await connection.query(
-        'INSERT INTO students (firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId]
-    );
-    await connection.end();
-    return result.insertId;
+  const connection = await getConnection();
+  const {
+    firstName,
+    lastName,
+    dob,
+    email,
+    address,
+    city,
+    state,
+    zip,
+    phoneNumber,
+    username,
+    password,
+    gradeLevelId,
+    studentNotes      // ← pick up from req.body
+  } = student;
+
+  const [result] = await connection.query(
+    `INSERT INTO students
+       (firstName, lastName, dob, email, address, city, state, zip, phoneNumber,
+        username, password, gradeLevelId, studentNotes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      firstName,
+      lastName,
+      dob,
+      email,
+      address,
+      city,
+      state,
+      zip,
+      phoneNumber,
+      username,
+      password,
+      gradeLevelId,
+      studentNotes
+    ]
+  );
+
+  await connection.end();
+  return result.insertId;
 }
 
-// Update student by ID
-//input: id, [firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId]
+// Update an existing student by ID
+// (only the fields we want—no username/password here)
 async function updateStudent(id, updatedFields) {
-    const connection = await getConnection();
-    const { firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId } = updatedFields;
-    await connection.query(
-        'UPDATE students SET firstName = ?, lastName = ?, dob = ?, email = ?, address = ?, city = ?, state = ?, zip = ?, phoneNumber = ?, username = ?, password = ?, gradeLevelId = ? WHERE studentId = ?',
-        [firstName, lastName, dob, email, address, city, state, zip, phoneNumber, username, password, gradeLevelId, id]
-    );
-    await connection.end();
+  const connection = await getConnection();
+  const {
+    firstName,
+    lastName,
+    dob,
+    email,
+    address,
+    city,
+    state,
+    zip,
+    phoneNumber,
+    gradeLevelId,
+    studentNotes    // ← pick up from req.body
+  } = updatedFields;
+
+  await connection.query(
+    `UPDATE students
+        SET firstName    = ?,
+            lastName     = ?,
+            dob          = ?,
+            email        = ?,
+            address      = ?,
+            city         = ?,
+            state        = ?,
+            zip          = ?,
+            phoneNumber  = ?,
+            gradeLevelId = ?,
+            studentNotes = ?    -- only update notes here
+      WHERE studentId    = ?`,
+    [
+      firstName,
+      lastName,
+      dob,
+      email,
+      address,
+      city,
+      state,
+      zip,
+      phoneNumber,
+      gradeLevelId,
+      studentNotes,
+      id
+    ]
+  );
+
+  await connection.end();
 }
 
-// Delete student by ID
-//input: id
+// Delete a student
 async function deleteStudent(id) {
-    const connection = await getConnection();
-    await connection.query('DELETE FROM students WHERE studentId = ?', [id]);
-    await connection.end();
+  const connection = await getConnection();
+  await connection.query(
+    'DELETE FROM students WHERE studentId = ?',
+    [id]
+  );
+  await connection.end();
 }
 
-module.exports = { getAllStudents, getStudentById, addStudent, updateStudent, deleteStudent, getStudentByUsername };
+module.exports = {
+  getAllStudents,
+  getStudentById,
+  getStudentByUsername,
+  addStudent,
+  updateStudent,
+  deleteStudent
+};

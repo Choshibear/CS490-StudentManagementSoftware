@@ -17,8 +17,13 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 
+
 //routes are prefixed with /api
 app.use('/api', routes); 
+app.use("/api/students", require("./routes/students"));
+app.use("/api/parents",  require("./routes/parents"));
+app.use("/api/parent_student", require("./routes/parent_student"));
+app.use("/api/enrollments",    require("./routes/enrollments"));
 
 app.use(errorHandler); // custom error handler
 
