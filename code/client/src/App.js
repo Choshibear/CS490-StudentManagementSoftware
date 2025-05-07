@@ -1,7 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
-import Home from "./pages/home";
+import Home from "./pages/home"; 
+import StudentCoursework from "./pages/studentcoursework";
 import Coursework from "./pages/coursework";
 import Gradebook from "./pages/gradebook";
 import StudentGradebook from "./pages/studentgradebook";
@@ -54,7 +55,8 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route index element={<Home />} />
-              <Route path="/studentgradebook" element={<Gradebook />} />
+              <Route path="/studentcoursework" element={<StudentCoursework />} />
+              <Route path="/studentgradebook" element={<StudentGradebook />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>

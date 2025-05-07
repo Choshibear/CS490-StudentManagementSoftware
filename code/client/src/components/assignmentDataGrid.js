@@ -1,4 +1,3 @@
-// src/components/assignmentDataGrid.js
 import React, { useEffect, useState } from 'react';
 import {
   DataGrid,
@@ -24,7 +23,6 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: 'http://localhost:5000/api' });
 
-
 export default function AssignmentDataGrid() {
   const [rows, setRows]               = useState([]);
   const [courses, setCourses]         = useState([]);
@@ -33,17 +31,30 @@ export default function AssignmentDataGrid() {
   const [editingId, setEditingId]     = useState(null);
   const [editedRow, setEditedRow]     = useState({});
 
+  // Load assignments, courses, types and apply teacher filtering
   useEffect(() => {
+    const u = JSON.parse(localStorage.getItem('user')) || {};
     (async () => {
       try {
         const [aRes, cRes, tRes] = await Promise.all([
           api.get('/assignments'),
           api.get('/courses'),
-          api.get('/assignmenttypes')
+          api.get('/assignmenttypes'),
         ]);
-        setCourses(cRes.data);
+        // Filter courses for teacher
+        let loadedCourses = cRes.data;
+        if (u.role === 'teacher') {
+          loadedCourses = loadedCourses.filter(c => c.teacherId === u.teacherId);
+        }
+        setCourses(loadedCourses);
         setTypes(tRes.data);
-        setRows(aRes.data);
+        // Filter assignments for teacher
+        let assignments = aRes.data;
+        if (u.role === 'teacher') {
+          const allowedIds = new Set(loadedCourses.map(c => c.courseId));
+          assignments = assignments.filter(a => allowedIds.has(a.courseId));
+        }
+        setRows(assignments);
       } catch (err) {
         console.error('Load failed:', err);
       }

@@ -1,206 +1,150 @@
 import React, { useEffect, useState } from "react";
- import {
-   DataGrid,
-   GridToolbarContainer
- } from "@mui/x-data-grid";
- import {
-   FormControl,
-   InputLabel,
-   Select,
-   MenuItem
-} from "@mui/material";
- import Box from '@mui/material/Box';
- import axios from "axios";
- 
- const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => {
-   return (
-     <GridToolbarContainer sx={toolbarStyles}>
-       <FormControl size="small" sx={{ minWidth: 200 }}>
-         <InputLabel>Filter by Course</InputLabel>
-         <Select
-           value={selectedCourseId ?? ''}
-           label="Filter by Course"
-           onChange={(e) => setSelectedCourseId(Number(e.target.value))}
-           //displayEmpty
-         >
-           <MenuItem value="">
-           <em>All Courses</em>
-           </MenuItem>
-           {courses.map((course) => (
-             <MenuItem key={course.courseId} value={course.courseId}>
-               {course.courseName}
-             </MenuItem>
-           ))}
-         </Select>
-       </FormControl>
-     </GridToolbarContainer>
-   );
- };
- 
- const StudentGradesDataGrid = () => {
-   const [gradesData, setGradesData] = useState([]);
-   const [courses, setCourses] = useState([]);
-   const [selectedCourseId, setSelectedCourseId] = useState(''); // Default courseId = 1
- 
-   useEffect(() => {
-     const fetchCourses = async () => {
-       const res = await axios.get("http://localhost:5000/api/courses");
-       setCourses(res.data);
-       if (res.data.length > 0 && !selectedCourseId) {
-         setSelectedCourseId(res.data[0].courseId); // default to first available
-       }
-     };
-     fetchCourses();
-   }, []);
- 
-   useEffect(() => {
-     if (!selectedCourseId) return;
-     const fetchGradebook = async () => {
-      const res = await axios.get(`http://localhost:5000/api/assignmentgrades/course/${selectedCourseId}`);
-       const grouped = groupData(res.data);
-       setGradesData(grouped);
-     };
-     fetchGradebook();
-   }, [selectedCourseId]);
- 
-   const groupData = (rows) => {
-     const studentMap = {};
-     const assignmentSet = new Set();
- 
-     rows.forEach((row) => {
-       if (!studentMap[row.student_id]) {
-         studentMap[row.student_id] = {
-           id: row.student_id,
-           student: row.student_name,
-         };
-       }
-       studentMap[row.student_id][row.assignmentName] = row.assignmentPoints || '';
-       assignmentSet.add(row.assignmentName);
-     });
- 
-     return Object.values(studentMap);
-   };
- 
-   const getColumns = () => {
-     const assignmentNames = gradesData.length > 0
-       ? Object.keys(gradesData[0]).filter((k) => k !== 'id' && k !== 'student')
-       : [];
- 
-     const assignmentColumns = assignmentNames.map((name) => ({
-       field: name,
-       headerName: name,
-       width: 150,
-       editable: true,
-     }));
- 
-     return [
-       { field: 'student', headerName: 'Student', width: 200 },
-       ...assignmentColumns
-     ];
-   };
- 
-   const handleRowUpdate = async (newRow, oldRow) => {
-     const studentId = newRow.id;
-   
-     // Find the changed assignment
-     const changedAssignment = Object.keys(newRow).find(
-       (key) => newRow[key] !== oldRow[key] && key !== 'id' && key !== 'student'
-     );
-   
-     if (!changedAssignment) return oldRow;
-   
-     const updatedPoints = newRow[changedAssignment];
- 
-     console.log('Detected edit:');
-   console.log('Student ID:', studentId);
-   console.log('Assignment:', changedAssignment);
-   console.log('Updated Points:', updatedPoints);
-   
-     try {
-       const response = await axios.put('http://localhost:5000/api/assignmentgrades/update', {
-         studentId,
-         courseId: selectedCourseId,
-         assignmentName: changedAssignment,
-         points: updatedPoints
-       });
- 
-       console.log('API response:', response.data); // Log the API response
- 
-       // Update local state to reflect UI
-     setGradesData((prevRows) =>
-       prevRows.map((row) =>
-         row.id === newRow.id
-           ? { ...row, [changedAssignment]: updatedPoints }
-           : row
-       )
-     );
- 
-     console.log('Local state updated.');
-   
-       return { ...newRow}; // confirms successful update to DataGrid
-     } catch (error) {
-       console.error("Error updating grade:", error);
-       return oldRow; // revert to old row if error occurs
-     }
-   };
- 
-   return (
-     <Box>
-    <GridToolbarContainer sx={toolbarStyles}>
-    <FormControl size="small" sx={{ minWidth: 200 }}>
-      <InputLabel>Filter by Course</InputLabel>
-      <Select
-        value={selectedCourseId ?? ''}
-        label="Filter by Course"
-        onChange={(e) => setSelectedCourseId(Number(e.target.value))}
-        //displayEmpty
-      >
-        <MenuItem value="">
-        <em>All Courses</em>
-        </MenuItem>
-        {courses.map((course) => (
-          <MenuItem key={course.courseId} value={course.courseId}>
-            {course.courseName}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  </GridToolbarContainer>
-     
-     <Box sx={containerStyles}>
-       <DataGrid
-         rows={gradesData}
-         columns={getColumns()}
-         processRowUpdate={handleRowUpdate}
-         onProcessRowUpdateError={(err) => console.error(err)}
-         experimentalFeatures={{ newEditingApi: true }}
-         initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-              page: 0,
-            },
-          },
-        }} // Default rows per page
-         pageSizeOptions={[10, 30, 50, 100]} // Dropdown choices
-         slots={{
-           toolbar: EditToolbar
-         }}
-         slotProps={{
-           toolbar: {
-             courses,
-             selectedCourseId,
-             setSelectedCourseId
-           }
-         }}
-         disableColumnMenu
-       />
-       </Box>
-       </Box>
-   );
-};
- 
-//Styles
+import { DataGrid } from "@mui/x-data-grid";
+import { Box, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import axios from "axios";
+
+export default function StudentGradesDataGrid() {
+  const [rows, setRows] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [types, setTypes] = useState([]);
+  const [filterCourse, setFilterCourse] = useState("");
+  const [user, setUser] = useState(null);
+
+  // Load user from localStorage (student or parent)
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("user"));
+    if (u && (u.role === "student" || u.role === "parent")) {
+      setUser(u);
+    }
+  }, []);
+
+  // Fetch initial data: grades, assignments, courses, enrollments, types, parent-student mapping
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        // Parallel API calls
+        const endpoints = [
+          axios.get("http://localhost:5000/api/assignmentgrades"),
+          axios.get("http://localhost:5000/api/assignments"),
+          axios.get("http://localhost:5000/api/courses"),
+          axios.get("http://localhost:5000/api/enrollments"),
+          axios.get("http://localhost:5000/api/assignmenttypes"),
+        ];
+        // If parent, also fetch parent-student link
+        if (user.role === "parent") {
+          endpoints.push(axios.get("http://localhost:5000/api/parent_student"));
+        }
+        const [gRes, aRes, cRes, eRes, tRes, psRes] = await Promise.all(endpoints);
+        const grades = gRes.data;
+        const assignments = aRes.data;
+        const allCourses = cRes.data;
+        const enrollments = eRes.data;
+        const typeData = tRes.data;
+        setTypes(typeData);
+
+        // Determine studentIds array
+        let studentIds = [];
+        if (user.role === "student") {
+          studentIds = [user.studentId];
+        } else if (user.role === "parent") {
+          const ps = psRes.data;
+          studentIds = ps
+            .filter(link => link.parentId === user.parentId)
+            .map(link => link.studentId);
+        }
+        // Determine courses enrolled by these students
+        const myEnrolls = enrollments.filter(e => studentIds.includes(e.studentId));
+        const courseIds = new Set(myEnrolls.map(e => e.courseId));
+        const allowedCourses = allCourses.filter(c => courseIds.has(c.courseId));
+        setCourses(allowedCourses);
+
+        // Combine grade + assignment + type data with percentage grade
+        const myGrades = grades.filter(g =>
+          studentIds.includes(g.studentId) && courseIds.has(g.courseId)
+        );
+        const combined = myGrades.map(g => {
+          const assignment = assignments.find(a =>
+            a.assignmentId === g.assignmentId && a.courseId === g.courseId
+          );
+          const pts = g.assignmentPoints;
+          const poss = assignment?.possiblePoints;
+          const grade = poss && poss > 0
+            ? `${((pts / poss) * 100).toFixed(0)}%`
+            : "";
+          const typeName = typeData.find(t => t.typeId === assignment?.assignmentTypeID)?.typeName || "";
+          return {
+            id: `${g.studentId}-${g.courseId}-${g.assignmentId}`,
+            courseName: allowedCourses.find(c => c.courseId === g.courseId)?.courseName || "",
+            assignmentType: typeName,
+            assignmentName: assignment?.assignmentName || "",
+            assignmentPoints: pts,
+            possiblePoints: poss,
+            grade,
+          };
+        });
+        setRows(combined);
+      } catch (err) {
+        console.error("Load failed:", err);
+      }
+    })();
+  }, [user]);
+
+  // Apply course filter
+  const displayed = filterCourse
+    ? rows.filter(r => r.courseName === filterCourse)
+    : rows;
+
+  // Columns: Type included, Description removed
+  const columns = [
+    { field: "courseName", headerName: "Course", width: 180 },
+    { field: "assignmentType", headerName: "Type", width: 150 },
+    { field: "assignmentName", headerName: "Title", width: 200 },
+    { field: "assignmentPoints", headerName: "Points", width: 120 },
+    { field: "possiblePoints", headerName: "Possible Points", width: 120 },
+    { field: "grade", headerName: "Grade", width: 120 },
+  ];
+
+  return (
+    <Box>
+      {/* Toolbar */}
+      <Box sx={toolbarStyles}>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel shrink sx={{
+                      transform: "translate(14px, -9px) scale(0.75)",
+                      fontSize: "0.75rem",
+                    }}>Filter by Course</InputLabel>
+          <Select
+            value={filterCourse}
+            displayEmpty
+            onChange={e => setFilterCourse(e.target.value)}
+          >
+            <MenuItem value=""><em>All Courses</em></MenuItem>
+            {courses.map(c => (
+              <MenuItem key={c.courseId} value={c.courseName}>
+                {c.courseName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* DataGrid */}
+      <Box sx={{ height: 600, ...containerStyles }}>
+        <DataGrid
+          rows={displayed}
+          columns={columns}
+          pageSizeOptions={[10, 30, 50, 100]}
+          initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+          disableSelectionOnClick
+          disableColumnMenu
+        />
+      </Box>
+    </Box>
+  );
+}
+
+// Styles
 const toolbarStyles = {
   display: "flex",
   alignItems: "center",
@@ -216,5 +160,3 @@ const containerStyles = {
   '& .actions': { color: 'text.secondary' },
   '& .textPrimary': { color: 'text.primary' },
 };
- 
- export default StudentGradesDataGrid;

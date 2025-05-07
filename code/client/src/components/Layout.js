@@ -35,6 +35,7 @@ const drawerWidth = 150;
 const menuItems = [
   { text: "Home", icon: <HomeIcon />, path: "/" },
   { text: "Coursework", icon: <MenuBookIcon />, path: "/coursework" },
+  { text: "Student Coursework", icon: <MenuBookIcon />, path: "/studentcoursework" },
   { text: "Gradebook", icon: <GradeIcon />, path: "/gradebook" },
   { text: "Student Gradebook", icon: <GradeIcon />, path: "/studentgradebook" },
   { text: "Student Record", icon: <PersonIcon />, path: "/studentrecord" },
@@ -92,9 +93,9 @@ function Layout({ children }) {
 
     switch (user.role) {
       case 'student':
-        return ['Home', 'Coursework', 'Student Gradebook', 'Inbox', 'Settings'].includes(item.text);
+        return ['Home', 'Student Coursework', 'Student Gradebook', 'Inbox', 'Settings'].includes(item.text);
       case 'parent':
-        return ['Home', 'Coursework', 'Student Gradebook', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
+        return ['Home', 'Student Coursework', 'Student Gradebook', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'teacher':
         return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'admin':
