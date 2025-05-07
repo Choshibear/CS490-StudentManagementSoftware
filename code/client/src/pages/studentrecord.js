@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import axios from "axios";
 import {
   Table,
   TableBody,
@@ -6,332 +7,252 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Collapse,
   Typography,
   Box,
   Paper,
-  TextField,
   Button,
-  Avatar,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle
 } from "@mui/material";
-import { Upload, Add, Edit, Delete } from "@mui/icons-material";
+import { Add, Edit, Delete } from "@mui/icons-material";
 import { ThemeContext } from "../ThemeContext";
 
-// Sample student data
-const initialStudents = [
-  {
-    id: 1,
-    firstName: "John",
-    lastName: "Doe",
-    grade: "5th",
-    city: "New York",
-    state: "NY",
-    address: "123 Elm St",
-    emergencyContact: "Jane Doe (Mother) - 123-456-7890",
-    image: "profile1.jpg",
-    schedule: "Math, Science, English"
-  },
-  {
-    id: 2,
-    firstName: "Alice",
-    lastName: "Smith",
-    grade: "6th",
-    city: "Los Angeles",
-    state: "CA",
-    address: "456 Oak St",
-    emergencyContact: "Bob Smith (Father) - 987-654-3210",
-    image: "profile2.jpg",
-    schedule: "History, Math, Art"
-  }
-];
+// Sorting utilities
+function descendingComparator(a, b, orderBy) {
+  if (b[orderBy] < a[orderBy]) return -1;
+  if (b[orderBy] > a[orderBy]) return 1;
+  return 0;
+}
+function getComparator(order, orderBy) {
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+function stableSort(array, comparator) {
+  const stabilized = array.map((el, idx) => [el, idx]);
+  stabilized.sort((a, b) => {
+    const cmp = comparator(a[0], b[0]);
+    if (cmp !== 0) return cmp;
+    return a[1] - b[1];
+  });
+  return stabilized.map(el => el[0]);
+}
 
-function StudentRecord() {
+export default function StudentRecord() {
   const { scheme } = useContext(ThemeContext);
-  const [students, setStudents] = useState(initialStudents);
+  const [user, setUser] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [parents, setParents] = useState([]);
+  const [parentLinks, setParentLinks] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [coursesList, setCoursesList] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [courseGrades, setCourseGrades] = useState([]);
   const [openRow, setOpenRow] = useState(null);
-  const [view, setView] = useState("table");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [nextId, setNextId] = useState(initialStudents.length + 1);
-  const [formErrors, setFormErrors] = useState({});
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    grade: "",
-    city: "",
-    state: "",
-    address: "",
-    emergencyContact: "",
-    image: ""
-  });
+  const [order, setOrder] = useState('asc');
+  const [orderBy, setOrderBy] = useState('studentId');
 
-  const handleEdit = () => {
-    if (selectedStudent) {
-      setView("form");
-      setFormData({ ...selectedStudent });
-    }
-  };
-
-  const handleDelete = () => {
-    setStudents(students.filter(s => s.id !== selectedStudent.id));
-    setDeleteConfirm(false);
-    setSelectedStudent(null);
-  };
-
-  const handleRowClick = student => {
-    if (selectedStudent?.id === student.id) {
-      setSelectedStudent(null);
-      setOpenRow(null);
-    } else {
-      setSelectedStudent(student);
-      setOpenRow(student.id);
-    }
-  };
-
-  const handleSave = () => {
-    let errors = {};
-    Object.keys(formData).forEach(key => {
-      if (key !== "image" && !formData[key]) {
-        errors[key] = "This field is required";
+  // Load user and all data
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem('user'));
+    setUser(u);
+    Promise.all([
+      axios.get("http://localhost:5000/api/students"),
+      axios.get("http://localhost:5000/api/parent_student"),
+      axios.get("http://localhost:5000/api/parents"),
+      axios.get("http://localhost:5000/api/enrollments"),
+      axios.get("http://localhost:5000/api/courses"),
+      axios.get("http://localhost:5000/api/teachers"),
+      axios.get("http://localhost:5000/api/coursegrades")
+    ]).then(([sRes, plRes, pRes, eRes, cRes, tRes, cgRes]) => {
+      let allStudents = sRes.data;
+      const allEnroll = eRes.data;
+      const allCourses = cRes.data;
+      // Role-based student filter
+      if (u.role === 'teacher') {
+        // find courses taught by this teacher
+        const myCourseIds = new Set(
+          allCourses.filter(c => c.teacherId === u.teacherId).map(c => c.courseId)
+        );
+        // find students enrolled in those courses
+        const studentIds = new Set(
+          allEnroll.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
+        );
+        allStudents = allStudents.filter(s => studentIds.has(s.studentId));
       }
-    });
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-    setFormErrors({});
+      // if admin or other, no filter
+      setStudents(allStudents);
+      setParentLinks(plRes.data);
+      setParents(pRes.data);
+      setEnrollments(allEnroll);
+      setCoursesList(allCourses);
+      setTeachers(tRes.data);
+      setCourseGrades(cgRes.data);
+    }).catch(err => console.error(err));
+  }, []);
 
-    if (selectedStudent) {
-      setStudents(
-        students.map(s => (s.id === selectedStudent.id ? { ...s, ...formData } : s))
-      );
-    } else {
-      const newStudent = { id: nextId, ...formData };
-      setStudents([...students, newStudent]);
-      setNextId(nextId + 1);
-    }
-
-    setView("table");
-    setSelectedStudent(null);
-    setOpenRow(null);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      grade: "",
-      city: "",
-      state: "",
-      address: "",
-      emergencyContact: "",
-      image: ""
-    });
+  const handleRowClick = (student) => {
+    const id = student.studentId;
+    setOpenRow(prev => prev === id ? null : id);
+    setSelectedStudent(prev => prev && prev.studentId === id ? null : student);
   };
 
-  const handleCancel = () => {
-    setView("table");
-    setSelectedStudent(null);
-    setOpenRow(null);
+  const handleDelete = async () => {
+    if (!selectedStudent) return;
+    try {
+      await axios.delete(`http://localhost:5000/api/students/${selectedStudent.studentId}`);
+      setDeleteConfirm(false);
+      setSelectedStudent(null);
+      // refresh students
+      const res = await axios.get("http://localhost:5000/api/students");
+      let updated = res.data;
+      if (user.role === 'teacher') {
+        // reapply teacher filter
+        const myCourseIds = new Set(
+          coursesList.filter(c => c.teacherId === user.teacherId).map(c => c.courseId)
+        );
+        const studentIds = new Set(
+          enrollments.filter(e => myCourseIds.has(e.courseId)).map(e => e.studentId)
+        );
+        updated = updated.filter(s => studentIds.has(s.studentId));
+      }
+      setStudents(updated);
+    } catch(err) { console.error(err); }
   };
 
-  const handleFileChange = e => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result });
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
   };
+
+  const sortedStudents = stableSort(students, getComparator(order, orderBy));
 
   return (
-    <Box
-      sx={{
-        bgcolor: scheme.mainBg,
-        color: scheme.text,
-        minHeight: "100vh",
-        p: 3
-      }}
-    >
-      {view === "table" && (
-        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-          <Button
-            onClick={() => { setView("form"); setSelectedStudent(null); }}
-            variant="contained"
-            sx={{
-              backgroundColor: scheme.accent,
-              color: scheme.text,
-              '&:hover': { backgroundColor: scheme.text, color: scheme.accent }
-            }}
-          >
-            <Add sx={{ mr: 1 }} /> Add
-          </Button>
-          <Button
-            onClick={handleEdit}
-            variant="contained"
-            disabled={!selectedStudent}
-            sx={{
-              backgroundColor: scheme.accent,
-              color: scheme.text,
-              '&:hover': { backgroundColor: scheme.text, color: scheme.accent }
-            }}
-          >
-            <Edit sx={{ mr: 1 }} /> Edit
-          </Button>
-          <Button
-            onClick={() => setDeleteConfirm(true)}
-            variant="contained"
-            disabled={!selectedStudent}
-            sx={{
-              backgroundColor: scheme.accent,
-              color: scheme.text,
-              '&:hover': { backgroundColor: scheme.text, color: scheme.accent }
-            }}
-          >
-            <Delete sx={{ mr: 1 }} /> Delete
-          </Button>
-        </Box>
-      )}
-
-      {view === "table" ? (
-        <TableContainer
-          component={Paper}
-          sx={{
-            backgroundColor: scheme.panelBg,
-            color: scheme.text,
-            boxShadow: 5
-          }}
-        >
-          <Table>
-            <TableHead>
-              <TableRow sx={{ backgroundColor: scheme.panelBg }}>
-                {['ID','First Name','Last Name','Grade','City','State'].map(head => (
-                  <TableCell key={head} sx={{ fontWeight: 'bold', color: scheme.text }}>
-                    {head}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {students.map(student => (
-                <React.Fragment key={student.id}>
-                  <TableRow
-                    onClick={() => handleRowClick(student)}
-                    sx={{
-                      cursor: 'pointer',
-                      backgroundColor: openRow === student.id ? scheme.accent : 'inherit',
-                      '&:hover': { backgroundColor: scheme.panelBg }
-                    }}
-                  >
-                    <TableCell sx={{ color: scheme.text }}>{student.id}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{student.firstName}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{student.lastName}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{student.grade}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{student.city}</TableCell>
-                    <TableCell sx={{ color: scheme.text }}>{student.state}</TableCell>
+    <Box sx={{ bgcolor: scheme.mainBg, color: scheme.text, p: 3 }}>
+      <TableContainer component={Paper} sx={{ backgroundColor: scheme.panelBg }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {['studentId','firstName','lastName','gradeLevelId'].map((field, idx) => (
+                <TableCell key={field} sx={{ color: scheme.text }} sortDirection={orderBy === field ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === field}
+                    direction={orderBy === field ? order : 'asc'}
+                    onClick={() => handleRequestSort(field)}
+                  >{['ID','First Name','Last Name','Grade Level'][idx]}</TableSortLabel>
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedStudents.map((s) => {
+              const linkedParents = parentLinks
+                .filter(pl => pl.studentId === s.studentId)
+                .map(pl => parents.find(p => p.parentId === pl.parentId))
+                .filter(Boolean);
+              const studentEnrollments = enrollments.filter(e => e.studentId === s.studentId);
+              return (
+                <React.Fragment key={s.studentId}>
+                  <TableRow hover onClick={() => handleRowClick(s)} sx={{ cursor: 'pointer' }}>
+                    <TableCell sx={{ color: scheme.text }}>{s.studentId}</TableCell>
+                    <TableCell sx={{ color: scheme.text }}>{s.firstName}</TableCell>
+                    <TableCell sx={{ color: scheme.text }}>{s.lastName}</TableCell>
+                    <TableCell sx={{ color: scheme.text }}>{s.gradeLevelId}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={6} sx={{ p: 0 }}>
-                      <Collapse in={openRow === student.id} timeout="auto" unmountOnExit>
-                        <Box sx={{ m: 2 }}>
-                          <Typography variant="h6" sx={{ color: scheme.text }}>Details</Typography>
-                          <Avatar src={student.image} sx={{ width: 80, height: 80, mb: 1 }} />
-                          <Typography sx={{ color: scheme.text }}><b>Address:</b> {student.address}</Typography>
-                          <Typography sx={{ color: scheme.text }}><b>Emergency:</b> {student.emergencyContact}</Typography>
-                          <Typography sx={{ color: scheme.text }}><b>Schedule:</b> {student.schedule}</Typography>
+                    <TableCell colSpan={4} sx={{ p: 0 }}>
+                      <Collapse in={openRow === s.studentId} timeout="auto" unmountOnExit>
+                        <Box sx={{ display: 'flex', m: 2, color: scheme.text, gap: 4 }}>
+                          {/* Left: Student & Parent Info */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 1 }}><b>Student Contact</b></Typography>
+                            <Typography><b>DOB:</b> {new Date(s.dob).toLocaleDateString()}</Typography>
+                            <Typography><b>Email:</b> {s.email}</Typography>
+                            <Typography><b>Address:</b> {s.address}, {s.city}, {s.state} {s.zip}</Typography>
+                            <Typography><b>Phone:</b> {s.phoneNumber}</Typography>
+                            {linkedParents.length > 0 && (
+                              <Box sx={{ mt: 2 }}>
+                                <Typography variant="subtitle1"><b>Parent Contact</b></Typography>
+                                {linkedParents.map(p => (
+                                  <Box key={p.parentId} sx={{ mb: 1 }}>
+                                    <Typography><b>Name:</b> {p.firstName} {p.lastName}</Typography>
+                                    <Typography><b>Email:</b> {p.email}</Typography>
+                                    <Typography><b>Phone:</b> {p.phoneNumber}</Typography>
+                                    <Typography><b>Address:</b> {p.address}, {p.city}, {p.state} {p.zip}</Typography>
+                                  </Box>
+                                ))}
+                              </Box>
+                            )}
+                          </Box>
+                          {/* Right: Enrolled Courses Table */}
+                          <Box sx={{ flex: 1 }}>
+                            {studentEnrollments.length > 0 && (
+                              <>
+                                <Typography variant="subtitle1" sx={{ mb: 1 }}><b>Enrolled Courses</b></Typography>
+                                <Table size="small" sx={{ backgroundColor: scheme.mainBg }}>
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Course</TableCell>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Teacher</TableCell>
+                                      <TableCell sx={{ fontWeight: 'bold' }}>Grade</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {studentEnrollments.map(e => {
+                                      const course = coursesList.find(c => c.courseId === e.courseId) || {};
+                                      const teacher = teachers.find(t => t.teacherId === course.teacherId) || {};
+                                      const cg = courseGrades.find(cg => cg.studentId === s.studentId && cg.courseId === e.courseId) || {};
+                                      return (
+                                        <TableRow key={e.courseId}>
+                                          <TableCell>{course.courseName}</TableCell>
+                                          <TableCell>{teacher.firstName} {teacher.lastName}</TableCell>
+                                          <TableCell>{cg.courseGrade} ({cg.courseAvg}%)</TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </>
+                            )}
+                          </Box>
                         </Box>
                       </Collapse>
                     </TableCell>
                   </TableRow>
                 </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Paper
-          sx={{
-            p: 3,
-            maxWidth: 600,
-            mx: 'auto',
-            backgroundColor: scheme.panelBg,
-            color: scheme.text
-          }}
-        >
-          <Typography variant="h5" sx={{ mb: 2, color: scheme.text }}>
-            {selectedStudent ? 'Edit Student' : 'Add New Student'}
-          </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            {['firstName','lastName','grade','city','state','address','emergencyContact'].map(field => (
-              <TextField
-                key={field}
-                label={field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                value={formData[field]}
-                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
-                fullWidth
-                error={!!formErrors[field]}
-                helperText={formErrors[field]}
-                sx={{ backgroundColor: scheme.mainBg }}
-              />
-            ))}
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-            <Button
-              component="label"
-              variant="contained"
-              sx={{
-                gridColumn: 'span 2',
-                backgroundColor: scheme.accent,
-                color: scheme.text,
-                '&:hover': { backgroundColor: scheme.text, color: scheme.accent }
-              }}
-            >
-              <Upload sx={{ mr: 1 }} /> Upload Image
-              <input type="file" hidden accept="image/*" onChange={handleFileChange} />
-            </Button>
-            {formData.image && (
-              <Avatar src={formData.image} sx={{ width: 100, height: 100, gridColumn: 'span 2' }} />
-            )}
-          </Box>
-          <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-            <Button
-              onClick={handleSave}
-              variant="contained"
-              fullWidth
-              sx={{
-                backgroundColor: scheme.accent,
-                color: scheme.text,
-                '&:hover': { backgroundColor: scheme.text, color: scheme.accent }
-              }}
-            >Save</Button>
-            <Button
-              onClick={handleCancel}
-              variant="contained"
-              fullWidth
-              sx={{
-                backgroundColor: scheme.mainBg,
-                color: scheme.text,
-                '&:hover': { backgroundColor: scheme.panelBg }
-              }}
-            >Cancel</Button>
-          </Box>
-        </Paper>
-      )}
+      <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+        <Button variant="contained" startIcon={<Add />} disabled>
+          Add
+        </Button>
+        <Button variant="contained" startIcon={<Edit />} disabled={!selectedStudent}>
+          Edit
+        </Button>
+        <Button variant="contained" startIcon={<Delete />} onClick={() => setDeleteConfirm(true)} disabled={!selectedStudent}>
+          Delete
+        </Button>
+      </Box>
 
       <Dialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)}>
-        <DialogTitle sx={{ color: scheme.text }}>Confirm Delete</DialogTitle>
-        <DialogContent sx={{ color: scheme.text }}>
-          <Typography sx={{ color: scheme.text }}>Are you sure you want to delete this student?</Typography>
-        </DialogContent>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>Delete this student?</DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirm(false)} sx={{ color: scheme.text }}>Cancel</Button>
-          <Button onClick={handleDelete} sx={{ color: scheme.accent }}>Delete</Button>
+          <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+          <Button onClick={handleDelete}>Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
 }
-
-export default StudentRecord;
