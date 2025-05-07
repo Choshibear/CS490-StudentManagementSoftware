@@ -26,6 +26,7 @@ in that file, copy and past the following:
     DB_USER=admin
     DB_PASSWORD=password
     DB_NAME=esms
+    JWT_SECRET=your_strong_secret_here
 
 Open/split seperate terminal and enter directory for server
     run the line:
