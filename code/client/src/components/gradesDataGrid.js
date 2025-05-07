@@ -1,19 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  DataGrid,
-  GridToolbarContainer
-} from "@mui/x-data-grid";
-import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Button
-} from "@mui/material";
-import {
-  Add as AddIcon,
-} from '@mui/icons-material';
+import { DataGrid, GridToolbarContainer } from "@mui/x-data-grid";
+import { FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
 import axios from "axios";
 
 const api = axios.create({ baseURL: "http://localhost:5000/api" });
@@ -24,6 +11,7 @@ export default function GradesDataGrid() {
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
 
+  // Load user from localStorage
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem("user"));
     if (u) setUser(u);
@@ -49,58 +37,99 @@ export default function GradesDataGrid() {
     })();
   }, [user]);
 
+  // Fetch grades and assignments, compute courseAvg & courseGrade
   useEffect(() => {
     if (!selectedCourseId) return;
     (async () => {
       try {
-        const res = await api.get(
-          `/assignmentgrades/course/${selectedCourseId}`
-        );
-        const grouped = groupData(res.data);
-        setGradesData(grouped);
+        // Load assignment grades and assignments
+        const [gRes, aRes] = await Promise.all([
+          api.get(`/assignmentgrades/course/${selectedCourseId}`),
+          api.get('/assignments')
+        ]);
+        const grades = gRes.data;
+        const assignments = aRes.data.filter(a => a.courseId === selectedCourseId);
+
+        // Build weight/possible map
+        const assignInfo = assignments.reduce((map, a) => {
+          map[a.assignmentName] = { weight: a.weight || 0, possible: a.possiblePoints || 0 };
+          return map;
+        }, {});
+        const totalWeight = assignments.reduce((sum, a) => sum + (a.weight || 0), 0);
+
+        // Group by student
+        const studentMap = {};
+        grades.forEach(row => {
+          const sid = row.student_id;
+          if (!studentMap[sid]) studentMap[sid] = { id: sid, student: row.student_name };
+          studentMap[sid][row.assignmentName] = row.assignmentPoints || 0;
+        });
+
+        // Compute courseAvg and letter grade
+        const combined = Object.values(studentMap).map(r => {
+          let weightedSum = 0;
+          assignments.forEach(a => {
+            const pts = r[a.assignmentName] || 0;
+            const info = assignInfo[a.assignmentName];
+            if (info.possible > 0) {
+              weightedSum += (pts / info.possible) * (info.weight || 0);
+            }
+          });
+          const avgNum = totalWeight ? (weightedSum / totalWeight) * 100 : 0;
+          const courseAvg = `${avgNum.toFixed(2)}%`;
+          // Letter grade scale
+          let courseGrade = 'F';
+          if (avgNum >= 97) courseGrade = 'A+';
+          else if (avgNum >= 93) courseGrade = 'A';
+          else if (avgNum >= 90) courseGrade = 'A-';
+          else if (avgNum >= 87) courseGrade = 'B+';
+          else if (avgNum >= 83) courseGrade = 'B';
+          else if (avgNum >= 80) courseGrade = 'B-';
+          else if (avgNum >= 77) courseGrade = 'C+';
+          else if (avgNum >= 73) courseGrade = 'C';
+          else if (avgNum >= 70) courseGrade = 'C-';
+          else if (avgNum >= 67) courseGrade = 'D+';
+          else if (avgNum >= 60) courseGrade = 'D';
+          return { ...r, courseGrade, courseAvg };
+        });
+        setGradesData(combined);
       } catch (err) {
-        console.error("Error fetching gradebook:", err);
+        console.error("Error fetching data:", err);
       }
     })();
   }, [selectedCourseId]);
 
-  const groupData = rows => {
-    const studentMap = {};
-    rows.forEach(row => {
-      if (!studentMap[row.student_id]) {
-        studentMap[row.student_id] = { id: row.student_id, student: row.student_name };
-      }
-      studentMap[row.student_id][row.assignmentName] = row.assignmentPoints || '';
-    });
-    return Object.values(studentMap);
-  };
-
+  // Build columns: student, courseGrade, courseAvg, assignments...
   const getColumns = () => {
     const assignmentNames = gradesData.length
-      ? Object.keys(gradesData[0]).filter(k => k !== 'id' && k !== 'student')
+      ? Object.keys(gradesData[0]).filter(
+          k => !['id','student','courseAvg','courseGrade'].includes(k)
+        )
       : [];
     const assignmentCols = assignmentNames.map(name => ({
       field: name,
       headerName: name,
       width: 150,
-      editable: user?.role === 'teacher',
+      editable: user?.role === 'teacher'
     }));
     return [
       { field: 'student', headerName: 'Student', width: 200 },
+      { field: 'courseGrade', headerName: 'Course Grade', width: 120 },
+      { field: 'courseAvg', headerName: 'Course Avg', width: 120 },
       ...assignmentCols
     ];
   };
 
+  // Handle teacher edits only
   const handleRowUpdate = async (newRow, oldRow) => {
     if (user?.role !== 'teacher') return oldRow;
     const studentId = newRow.id;
     const changed = Object.keys(newRow).find(
-      key => newRow[key] !== oldRow[key] && key !== 'id' && key !== 'student'
+      key => newRow[key] !== oldRow[key] && !['id','student','courseAvg','courseGrade'].includes(key)
     );
     if (!changed) return oldRow;
-    const points = newRow[changed];
     try {
-      await api.put('/assignmentgrades/update', { studentId, courseId: selectedCourseId, assignmentName: changed, points });
+      await api.put('/assignmentgrades/update', { studentId, courseId: selectedCourseId, assignmentName: changed, points: newRow[changed] });
       return newRow;
     } catch (err) {
       console.error('Error updating grade:', err);
@@ -113,20 +142,20 @@ export default function GradesDataGrid() {
       <DataGrid
         rows={gradesData}
         columns={getColumns()}
-        initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-        pageSizeOptions={[10, 30, 50, 100]}
-        slots={{ toolbar: props => <EditToolbar {...props} user={user} /> }}
-        slotProps={{ toolbar: { courses, selectedCourseId, setSelectedCourseId } }}
         processRowUpdate={handleRowUpdate}
         onProcessRowUpdateError={err => console.error(err)}
+        slots={{ toolbar: EditToolbar }}
+        slotProps={{ toolbar: { courses, selectedCourseId, setSelectedCourseId } }}
         experimentalFeatures={{ newEditingApi: true }}
+        initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+        pageSizeOptions={[10, 30, 50, 100]}
         disableColumnMenu
       />
     </Box>
   );
 }
 
-const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId, user }) => (
+const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId }) => (
   <GridToolbarContainer sx={toolbarStyles}>
     <FormControl size="small" sx={{ minWidth: 200 }}>
       <InputLabel>Filter by Course</InputLabel>
@@ -137,12 +166,19 @@ const EditToolbar = ({ courses, selectedCourseId, setSelectedCourseId, user }) =
       >
         <MenuItem value=""><em>All Courses</em></MenuItem>
         {courses.map(c => (
-          <MenuItem key={c.courseId} value={c.courseId}>{c.courseName}</MenuItem>
+          <MenuItem key={c.courseId} value={c.courseId}>
+            {c.courseName}
+          </MenuItem>
         ))}
       </Select>
     </FormControl>
   </GridToolbarContainer>
 );
 
-const toolbarStyles = { display: 'flex', alignItems: 'center', gap: 2, padding: '12px 16px', height: '70px', fontSize: '1.1rem', backgroundColor: '#f5f5f5' };
-const containerStyles = { width: '100%', '& .actions': { color: 'text.secondary' }, '& .textPrimary': { color: 'text.primary' } };
+const toolbarStyles = {
+  display: 'flex', alignItems: 'center', gap: 2,
+  padding: '12px 16px', height: '70px', fontSize: '1.1rem', backgroundColor: '#f5f5f5'
+};
+const containerStyles = {
+  width: '100%', '& .actions': { color: 'text.secondary' }, '& .textPrimary': { color: 'text.primary' }
+};
