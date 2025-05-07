@@ -97,12 +97,12 @@ export default function StudentGradesDataGrid() {
 
   // Columns: Type included, Description removed
   const columns = [
-    { field: "courseName", headerName: "Course", width: 180 },
+    { field: "courseName", headerName: "Course", width: 250 },
     { field: "assignmentType", headerName: "Type", width: 150 },
     { field: "assignmentName", headerName: "Title", width: 200 },
-    { field: "assignmentPoints", headerName: "Points", width: 120 },
-    { field: "possiblePoints", headerName: "Possible Points", width: 120 },
-    { field: "grade", headerName: "Grade", width: 120 },
+    { field: "assignmentPoints", headerName: "Student Points", width: 150 },
+    { field: "possiblePoints", headerName: "Points Possible", width: 150 },
+    { field: "grade", headerName: "Assignment Grade", width: 150 },
   ];
 
   return (

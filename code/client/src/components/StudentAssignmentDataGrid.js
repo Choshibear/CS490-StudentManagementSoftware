@@ -95,14 +95,28 @@ export default function StudentAssignmentDataGrid() {
         return typeObj ? typeObj.typeName : '';
       }
     },
-    { field: 'assignmentName', headerName: 'Title', width: 200 },
-    { field: 'description', headerName: 'Description', width: 300 },
-    { field: 'dueDate', headerName: 'Due Date', width: 150 },
+    { field: 'assignmentName', headerName: 'Title', width: 250 },
+    { field: 'description', headerName: 'Description', width: 350 },
+    {
+      field: 'dueDate',
+      headerName: 'Due Date',
+      width: 150,
+      renderCell: params =>
+      (() => {
+        const d = new Date(params.value);
+        if (isNaN(d)) return '';
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        const yyyy = d.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+      })()
+    },
     { field: 'possiblePoints', headerName: 'Points', width: 120 },
+    { field: 'weight', headerName: 'Weight', width: 120 },
     {
       field: 'courseId',
       headerName: 'Course',
-      width: 180,
+      width: 250,
       renderCell: (params) => {
         const cid = params.value;
         const courseObj = courses.find(c => c.courseId === cid);
