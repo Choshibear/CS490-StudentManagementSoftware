@@ -9,8 +9,8 @@ function UnauthorizedPage() {
       <Typography variant="body1" sx={{ mt: 2 }}>
         You don't have permission to access this page
       </Typography>
-      <Button component={Link} to="/" variant="contained" sx={{ mt: 3 }}>
-        Return to Home
+      <Button component={Link} to="/login" variant="contained" sx={{ mt: 3 }}>
+        Return to Login
       </Button>
     </Box>
   );
