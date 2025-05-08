@@ -107,7 +107,23 @@ export default function GradesDataGrid({ onStudentClick }) {
       editable: user?.role === 'teacher'
     }));
     return [
-      { field: 'student',     headerName: 'Student',      width: 200 },
+      {
+        field: 'student',
+        headerName: 'Student',
+        width: 200,
+        // underline it, color it blue, pointer cursor
+        renderCell: (params) => (
+          <span
+            style={{
+              color: '#1976d2',         // MUI primary blue
+              textDecoration: 'underline',
+              cursor: 'pointer'
+            }}
+          >
+            {params.value}
+          </span>
+        )
+      },
       { field: 'courseGrade', headerName: 'Course Grade', width: 120 },
       { field: 'courseAvg',   headerName: 'Course Avg',   width: 120 },
       ...assignmentCols
@@ -137,9 +153,11 @@ export default function GradesDataGrid({ onStudentClick }) {
         columns={getColumns()}
         processRowUpdate={handleRowUpdate}
         onProcessRowUpdateError={err => console.error(err)}
-        onRowClick={params => {
-          if (onStudentClick) {
+        onCellClick={(params, event) => {
+        if (params.field === 'student' && onStudentClick) {
             onStudentClick(params.id, selectedCourseId, params.row.student);
+                    // prevent the grid from also entering edit mode etc.
+              event.stopPropagation();
           }
         }}
         slots={{ toolbar: EditToolbar }}
