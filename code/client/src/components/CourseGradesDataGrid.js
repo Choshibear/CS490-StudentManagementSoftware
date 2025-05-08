@@ -51,11 +51,13 @@ export default function CourseGradesDataGrid() {
           const course = enrolledCourses.find(c => c.courseId === cid) || {};
           const grade = cg.course_grade ?? cg.courseGrade;
           const avgVal = cg.course_avg ?? cg.courseAvg;
+          const feedback = cg.feedback || cg.courseFeedback;
           return {
             id: cg.course_grade_id ?? cg.courseGradeId,
             courseName: course.courseName || "",
             courseGrade: grade || "",
-            courseAvg: avgVal != null ? `${avgVal}%` : ""
+            courseAvg: avgVal != null ? `${avgVal}%` : "",
+            feedback,
           };
         });
         setCourseGrades(rows);

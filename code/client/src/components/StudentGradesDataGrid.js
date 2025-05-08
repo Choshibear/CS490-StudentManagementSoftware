@@ -73,6 +73,7 @@ export default function StudentGradesDataGrid() {
             ? `${((pts / poss) * 100).toFixed(0)}%`
             : "";
           const typeName = typeData.find(t => t.typeId === assignment?.assignmentTypeID)?.typeName || "";
+          const feedback = g.feedback || ""; // Default to empty string if undefined
           return {
             id: `${g.studentId}-${g.courseId}-${g.assignmentId}`,
             courseName: allowedCourses.find(c => c.courseId === g.courseId)?.courseName || "",
@@ -81,6 +82,7 @@ export default function StudentGradesDataGrid() {
             assignmentPoints: pts,
             possiblePoints: poss,
             grade,
+            feedback,
           };
         });
         setRows(combined);
@@ -103,6 +105,7 @@ export default function StudentGradesDataGrid() {
     { field: "assignmentPoints", headerName: "Student Points", width: 150 },
     { field: "possiblePoints", headerName: "Points Possible", width: 150 },
     { field: "grade", headerName: "Assignment Grade", width: 150 },
+    { field: "feedback", headerName: "Feedback", width: 150 },
   ];
 
   return (

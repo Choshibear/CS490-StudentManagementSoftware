@@ -83,6 +83,19 @@ async function updateAssignmentGrade({ studentId, courseId, assignmentName, poin
   await conn.end();
 }
 
+async function updateAssignmentFeedback({ studentId, courseId, assignmentId, feedback }) {
+  const conn = await getConnection();
+  await conn.execute(
+    `UPDATE assignmentgrades
+        SET feedback = ?
+      WHERE studentId    = ?
+        AND assignmentId = ?
+        AND courseId     = ?`,
+    [feedback, studentId, assignmentId, courseId] // pass null if clearing
+  );
+  await conn.end();
+}
+
 // Delete by composite key
 async function deleteAssignmentGrade({ studentId, assignmentId, courseId }) {
   const conn = await getConnection();
@@ -114,6 +127,7 @@ module.exports = {
   getAssignmentGradesByCourseId,
   addGradesForAssignment,
   updateAssignmentGrade,
+  updateAssignmentFeedback,
   deleteAssignmentGrade,
   addGradesForAssignment
 };

@@ -6,6 +6,7 @@ const {
     getAssignmentGradesByCourseId,
     addAssignmentGrade,
     updateAssignmentGrade,
+    updateAssignmentFeedback,
     deleteAssignmentGrade
 } = require('../db/assignmentgradesQueries');
 
@@ -70,6 +71,17 @@ router.put('/update', async (req, res) => {
         res.status(500).json({ error: 'Failed to update AssignmentGrade' });
     }
 });
+
+// New: update just feedback
+router.put('/feedback', async (req, res) => {
+    try {
+      await updateAssignmentFeedback(req.body);
+      res.json({ message: 'Feedback updated' });
+    } catch (err) {
+      console.error("Feedback update error:", err);
+      res.status(500).json({ error: 'Failed to update feedback' });
+    }
+  });
 
 
 

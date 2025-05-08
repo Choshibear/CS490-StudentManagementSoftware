@@ -23,7 +23,9 @@ app.use('/api', routes);
 app.use("/api/students", require("./routes/students"));
 app.use("/api/parents",  require("./routes/parents"));
 app.use("/api/parent_student", require("./routes/parent_student"));
-app.use("/api/enrollments",    require("./routes/enrollments"));
+app.use("/api/enrollments", require("./routes/enrollments"));
+app.use('/api/coursegrades', require('./routes/coursegrades'));
+
 
 app.use(errorHandler); // custom error handler
 
