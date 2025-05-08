@@ -27,6 +27,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MailIcon from "@mui/icons-material/Mail";
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import AddToPhotosIcon from '@mui/icons-material/AddToPhotos';
 
 import { ThemeContext } from "../ThemeContext";
 
@@ -43,6 +44,7 @@ const menuItems = [
   { text: "Student Attendance", icon: <EventAvailableIcon />, path: "/AttendanceView" },
   { text: "Inbox", icon: <MailIcon />, path: "/inbox" },
   { text: "User Management", icon: <GroupAddIcon />, path: "/usermanagement" },
+  { text :"Course Management", icon: <AddToPhotosIcon />, path: "/coursemanagement" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" }
 ];
 
@@ -100,7 +102,7 @@ function Layout({ children }) {
       case 'teacher':
         return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'admin':
-        return ['Home',  'Student Record', 'Attendance', 'Inbox', 'User Management','Settings'].includes(item.text);
+        return ['Home',  'Student Record', 'Attendance', 'Inbox', 'User Management','Course Management','Settings'].includes(item.text);
       default:
         return false;
     }
