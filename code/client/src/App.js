@@ -14,6 +14,8 @@ import Inbox from "./pages/inbox";
 import UserManagement from "./pages/usermanagement";
 import ProtectedRoute from "./ProtectedRoute";
 import UnauthorizedPage from "./pages/unauthorized";
+import CreateAnnouncement from "./components/CreateAnnouncement";
+
 
 function App() {
     return (
@@ -26,6 +28,7 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route element={<Layout />}>
               <Route path="/usermanagement" element={<UserManagement />} />
+              <Route path="/createannouncement" element={<CreateAnnouncement />} /> 
             </Route>
           </Route>
   
