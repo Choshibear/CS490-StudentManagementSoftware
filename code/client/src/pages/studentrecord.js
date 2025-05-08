@@ -227,19 +227,37 @@ export default function StudentRecord() {
 
   const handleEditSave = async () => {
     try {
-      await api.put(`/students/${selectedStudent.studentId}`, formStudent);
+      // 1) Update the student record
+      await api.put(
+        `/students/${selectedStudent.studentId}`,
+        formStudent
+      );
+  
+      // 2) Update each linked parent
       const links = parentLinks.filter(
         pl => pl.studentId === selectedStudent.studentId
       );
       await Promise.all(
-        links.map(pl =>
-          api.put(`/parents/${pl.parentId}`, formParents[pl.parentId])
-        )
+        links.map(pl => {
+          const parentPayload = formParents[pl.parentId];
+          // you might want to log to verify:
+          console.log("Updating parent", pl.parentId, parentPayload);
+          return api.put(`/parents/${pl.parentId}`, parentPayload);
+        })
       );
-      await refreshStudents();
+  
+      // 3) Re-load everything so the UI reflects the changes
+      await Promise.all([
+        refreshStudents(),                       // reloads your students table
+        api.get("/parents").then(r => setParents(r.data)),
+        api.get("/parent_student").then(r => setParentLinks(r.data))
+      ]);
+  
+      // 4) Finally, close the dialog
       setOpenEdit(false);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("Error saving edits:", err);
+      // optionally show a toast or alert here
     }
   };
 
@@ -377,7 +395,7 @@ export default function StudentRecord() {
                                 parents.find(x => x.parentId === pl.parentId) ||
                                 {};
                               return (
-                                <Box key={pl.parentId} sx={{ mb: 2 }}>
+                                <Box key={pl.parentId} sx={{ mb: 2, backgroundColor: scheme.mainBg }}>
                                   <Typography>
                                     <b>Name:</b> {p.firstName} {p.lastName}
                                   </Typography>
@@ -397,7 +415,7 @@ export default function StudentRecord() {
 
                             {/* Student Notes moved under Parent */}
                             <Box sx={{ mt: 2 }}>
-                              <Typography variant="subtitle2">
+                              <Typography variant="subtitle1">
                                 <b>Student Notes</b>
                               </Typography>
                               <Typography>{s.studentNotes || "—"}</Typography>

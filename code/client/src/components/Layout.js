@@ -40,6 +40,7 @@ const menuItems = [
   { text: "Student Gradebook", icon: <GradeIcon />, path: "/studentgradebook" },
   { text: "Student Record", icon: <PersonIcon />, path: "/studentrecord" },
   { text: "Attendance", icon: <EventAvailableIcon />, path: "/attendance" },
+  { text: "Student Attendance", icon: <EventAvailableIcon />, path: "/AttendanceView" },
   { text: "Inbox", icon: <MailIcon />, path: "/inbox" },
   { text: "User Management", icon: <GroupAddIcon />, path: "/usermanagement" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" }
@@ -93,9 +94,9 @@ function Layout({ children }) {
 
     switch (user.role) {
       case 'student':
-        return ['Home', 'Student Coursework', 'Student Gradebook', 'Inbox', 'Settings'].includes(item.text);
+        return ['Home', 'Student Coursework', 'Student Gradebook', 'Student Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'parent':
-        return ['Home', 'Student Coursework', 'Student Gradebook', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
+        return ['Home', 'Student Coursework', 'Student Gradebook', 'Student Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'teacher':
         return ['Home', 'Coursework', 'Gradebook', 'Student Record', 'Attendance', 'Inbox', 'Settings'].includes(item.text);
       case 'admin':

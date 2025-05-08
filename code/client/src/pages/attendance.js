@@ -1,70 +1,74 @@
-import React, { useState } from 'react';
-import { 
-  Container,
+import React, { useState } from "react";
+import {
   Typography,
   Paper,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Tabs,
+  Tab,
   Box
-} from '@mui/material';
-import AttendanceList from '../components/attendanceComponent';
+} from "@mui/material";
+import Grid from "@mui/material/Grid2";
+import AttendanceComponent from "../components/attendanceComponent";
 
-const AttendancePage = () => {
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('all');
+function TabPanel({ children, value, index, ...other }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`attendance-tabpanel-${index}`}
+      aria-labelledby={`attendance-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+function a11yProps(index) {
+  return {
+    id: `attendance-tab-${index}`,
+    "aria-controls": `attendance-tabpanel-${index}`
+  };
+}
 
-  // Sample courses - replace with your actual data
-  const courses = [
-    { id: 'all', name: 'All Students' },
-    { id: 'math101', name: 'Mathematics 101' },
-    { id: 'eng201', name: 'English 201' }
-  ];
+export default function AttendancePage() {
+  const [tabIndex, setTabIndex] = useState(0);
+  const handleTabChange = (_e, val) => setTabIndex(val);
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Daily Attendance
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Select Course</InputLabel>
-            <Select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              label="Select Course"
-            >
-              {courses.map(course => (
-                <MenuItem key={course.id} value={course.id}>
-                  {course.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+    <Paper elevation={3} sx={{ p: 3 }}>
+      <Typography variant="h4" align="center">
+        Daily Attendance
+      </Typography>
+      <Typography variant="body1" align="center" gutterBottom>
+        Select a course and date below to take or view attendance.
+      </Typography>
 
-          <TextField
-            label="Attendance Date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 200 }}
-          />
-        </Box>
-
-        <Paper elevation={3} sx={{ p: 2 }}>
-          <AttendanceList 
-            courseId={selectedCourse} 
-            date={selectedDate}
-          />
-        </Paper>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 2 }}>
+        <Tabs
+          value={tabIndex}
+          onChange={handleTabChange}
+          aria-label="Attendance Tabs"
+          centered
+        >
+          <Tab label="Take Attendance" {...a11yProps(0)} />
+          <Tab label="View Attendance" {...a11yProps(1)} />
+        </Tabs>
       </Box>
-    </Container>
-  );
-};
 
-export default AttendancePage;
+      <TabPanel value={tabIndex} index={0}>
+        <Grid container justifyContent="center">
+          <Grid item xs={12}>
+            <AttendanceComponent mode="take" />
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      <TabPanel value={tabIndex} index={1}>
+        <Grid container justifyContent="center">
+          <Grid item xs={12}>
+            <AttendanceComponent mode="view" />
+          </Grid>
+        </Grid>
+      </TabPanel>
+    </Paper>
+  );
+}

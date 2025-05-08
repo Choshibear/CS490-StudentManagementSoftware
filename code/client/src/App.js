@@ -8,6 +8,7 @@ import Gradebook from "./pages/gradebook";
 import StudentGradebook from "./pages/studentgradebook";
 import StudentRecord from "./pages/studentrecord";
 import Attendance from "./pages/attendance";
+import AttendanceView from "./pages/AttendanceView";
 import Login from "./pages/login";
 import Settings from "./pages/settings";
 import Inbox from "./pages/inbox";
@@ -38,7 +39,7 @@ function App() {
             </Route>
           </Route>
   
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'student']} />}>
             <Route element={<Layout />}>
               <Route path="/studentrecord" element={<StudentRecord />} />
               <Route path="/attendance" element={<Attendance />} />
@@ -60,6 +61,7 @@ function App() {
               <Route index element={<Home />} />
               <Route path="/studentcoursework" element={<StudentCoursework />} />
               <Route path="/studentgradebook" element={<StudentGradebook />} />
+              <Route path="/AttendanceView" element={<AttendanceView />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
