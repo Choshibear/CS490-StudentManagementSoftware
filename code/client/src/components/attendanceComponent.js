@@ -193,7 +193,7 @@ for (const r of attendance) {
 
     try {
       const resp = await emailjs.send(
-        "service_ujfhe2t",       // your Service ID
+        "service_4rqd0ij",       // your Service ID
         "template_3zy6ewa",      // your Template ID
         {
           to_email: pEmail,
