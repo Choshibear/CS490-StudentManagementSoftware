@@ -39,3 +39,21 @@ Open/split seperate terminal and enter directory for server
 
 the console should return success message when server is running
 you can also see the server by going to localhost:5000
+
+Login Info for User Role Access:
+
+Admin
+    Username:aadams
+    Password:AdminPass123!
+
+Teacher
+    Username:jsmith
+    Password:password123
+
+Parent
+    Username:mmoore3
+    Password:ParentPass3%
+
+Student
+    Username:charris
+    Password:pass789
